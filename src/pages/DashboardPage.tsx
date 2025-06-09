@@ -382,12 +382,13 @@ const DashboardPage = () => {
 
           <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-purple-500/10 rounded-lg">
-                <Percent className="w-6 h-6 text-purple-400" />
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-green-400" />
               </div>
               <span className="text-sm text-gray-400">APY</span>
             </div>
-            <p className="text-3xl font-bold text-purple-400">34.6%</p>
+            <div className="text-3xl font-bold text-green-400">34.6% годовых</div>
+            <div className="text-sm text-gray-400 mt-1">Fixed Rate</div>
           </div>
         </div>
 
