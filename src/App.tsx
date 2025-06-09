@@ -26,7 +26,7 @@ const App = () => {
 						}
 					/>
 					<Route
-						path="/connect-ledger"
+						path="/ledger"
 						element={
 							<PrivateRoute>
 								<LedgerConnectionPage />

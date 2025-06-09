@@ -39,7 +39,11 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      await signIn(formData.nodeId, formData.password, formData.stakerPassword);
+      await signIn({
+        nodeId: formData.nodeId,
+        password: formData.password,
+        stakerPassword: formData.stakerPassword
+      });
     } catch (err) {
       setError('Invalid credentials. Please try again.');
     } finally {
@@ -50,15 +54,20 @@ const AuthPage = () => {
   const handleWalletSelect = async (wallet: 'ledger' | 'safepal' | 'keystone' | 'trezor') => {
     if (wallet === 'ledger') {
       try {
+        setIsLoading(true);
         await ledgerService.connect();
         const address = await ledgerService.getAddress();
         await ledgerService.authenticateWithBackend();
+        setSelectedWallet(wallet);
         navigate('/dashboard');
       } catch (err) {
-        setError('Failed to connect to Ledger');
+        setError('Failed to connect to Ledger. Please make sure your device is connected and unlocked.');
+      } finally {
+        setIsLoading(false);
       }
+    } else {
+      setSelectedWallet(wallet);
     }
-    setSelectedWallet(wallet);
   };
 
   if (showWalletSelection) {

@@ -4,6 +4,39 @@ import { Bluetooth, Lock, Shield, HardDrive } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ledgerService } from '../services/ledger';
 
+// Add Web Bluetooth API type definitions
+interface BluetoothDevice {
+  id: string;
+  name?: string;
+  gatt?: {
+    connect(): Promise<BluetoothRemoteGATTServer>;
+  };
+}
+
+interface BluetoothRemoteGATTServer {
+  connected: boolean;
+  device: BluetoothDevice;
+  getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
+}
+
+interface BluetoothRemoteGATTService {
+  getCharacteristic(characteristic: string): Promise<BluetoothRemoteGATTCharacteristic>;
+}
+
+interface BluetoothRemoteGATTCharacteristic {
+  readValue(): Promise<DataView>;
+  writeValue(value: BufferSource): Promise<void>;
+}
+
+declare global {
+  interface Navigator {
+    bluetooth: {
+      getAvailability(): Promise<boolean>;
+      requestDevice(options: { acceptAllDevices?: boolean; filters?: Array<{ services?: string[] }> }): Promise<BluetoothDevice>;
+    };
+  }
+}
+
 const LedgerConnectionPage = () => {
   const navigate = useNavigate();
   const { setSelectedWallet, setLedgerConnected } = useAuth();
@@ -16,13 +49,13 @@ const LedgerConnectionPage = () => {
 
   const checkBluetoothAvailability = async () => {
     try {
-      if (!navigator.bluetooth) {
+      if (!('bluetooth' in navigator)) {
         setIsBluetoothAvailable(false);
         setError('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
         return;
       }
 
-      const isAvailable = await navigator.bluetooth.getAvailability();
+      const isAvailable = await (navigator as any).bluetooth.getAvailability();
       setIsBluetoothAvailable(isAvailable);
       if (!isAvailable) {
         setError('Bluetooth is not available. Please enable Bluetooth in your system settings.');
