@@ -88,6 +88,12 @@ const DashboardPage = () => {
   const [depositProgress, setDepositProgress] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
+  // Remove volume chart states
+  const [networkChartData, setNetworkChartData] = useState<ChartData<'line'>>({
+    labels: [],
+    datasets: []
+  });
+
   // Generate random validators data
   useEffect(() => {
     const generateValidators = () => {
@@ -102,25 +108,37 @@ const DashboardPage = () => {
     generateValidators();
   }, []);
 
-  // Update network status data to be more realistic
+  // Remove volume chart effects and keep only network status effect
   useEffect(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => {
-      const hour = new Date();
-      hour.setHours(hour.getHours() - (23 - i));
-      return hour.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    });
+    const generateNetworkData = () => {
+      const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+      const data = Array(24).fill(97).map((base, i) => {
+        const fluctuation = (Math.random() - 0.5) * 0.3;
+        return (base + fluctuation).toFixed(1);
+      });
 
-    // Set realistic network status values with small fluctuations
-    const baseStatus = 97; // Base network status
-    const realisticStatus = [
-      97.2, 97.1, 97.3, 97.0, 97.2, 97.4, // 00:00 - 05:00 (stable)
-      97.1, 96.9, 97.0, 97.2, 97.1, 97.3, // 06:00 - 11:00 (slight dip)
-      97.4, 97.5, 97.3, 97.2, 97.4, 97.6, // 12:00 - 17:00 (peak)
-      97.5, 97.3, 97.2, 97.4, 97.3, 97.1  // 18:00 - 23:00 (slight decline)
-    ];
-    
-    setNetworkStatus(realisticStatus);
-    setNetworkLabels(hours);
+      setNetworkChartData({
+        labels,
+        datasets: [{
+          label: 'Network Status',
+          data,
+          borderColor: 'rgb(147, 51, 234)',
+          backgroundColor: 'rgba(147, 51, 234, 0.1)',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: 'rgb(147, 51, 234)',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
+          tension: 0.4,
+          fill: true,
+        }]
+      });
+    };
+
+    generateNetworkData();
+    const interval = setInterval(generateNetworkData, 300000); // Update every 5 minutes
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch ETH price
@@ -218,122 +236,10 @@ const DashboardPage = () => {
     setDepositProgress(progress);
   }, []);
 
-  // Update the useEffect for network status
-  useEffect(() => {
-    // Initial data generation
-    const generateNetworkData = () => {
-      const newData = Array(24).fill(97).map((base, i) => {
-        const fluctuation = (Math.random() - 0.5) * 0.5;
-        return (base + fluctuation).toFixed(1);
-      });
-      setNetworkStatus(newData);
-    };
-
-    // Generate initial data
-    generateNetworkData();
-
-    // Update every 5 minutes (300000 ms)
-    const interval = setInterval(generateNetworkData, 300000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const handleLogout = () => {
     setSelectedWallet('');
     setLedgerConnected(false);
     navigate('/');
-  };
-
-  // Update the chart data and options
-  const networkChartData = {
-    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
-    datasets: [
-      {
-        label: 'Network Status',
-        data: Array(24).fill(97).map((base, i) => {
-          // Add small random fluctuations
-          const fluctuation = (Math.random() - 0.5) * 0.5;
-          return (base + fluctuation).toFixed(1);
-        }),
-        borderColor: 'rgb(147, 51, 234)',
-        backgroundColor: 'rgba(147, 51, 234, 0.1)',
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 6,
-        pointHoverBackgroundColor: 'rgb(147, 51, 234)',
-        pointHoverBorderColor: '#fff',
-        pointHoverBorderWidth: 2,
-        tension: 0.4,
-        fill: true,
-      }
-    ]
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      intersect: false,
-      mode: 'index' as const,
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: 'rgba(17, 24, 39, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(75, 85, 99, 0.2)',
-        borderWidth: 1,
-        padding: 12,
-        displayColors: false,
-        callbacks: {
-          label: function(context: any) {
-            return `Status: ${context.parsed.y}%`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-          drawBorder: false
-        },
-        ticks: {
-          color: '#9CA3AF',
-          font: {
-            size: 12
-          },
-          maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 6
-        }
-      },
-      y: {
-        min: 96,
-        max: 98,
-        grid: {
-          color: 'rgba(75, 85, 99, 0.1)',
-          drawBorder: false
-        },
-        ticks: {
-          color: '#9CA3AF',
-          font: {
-            size: 12
-          },
-          callback: function(value: any) {
-            return value + '%';
-          }
-        }
-      }
-    },
-    elements: {
-      line: {
-        tension: 0.4
-      }
-    }
   };
 
   // Calculate pagination
@@ -433,8 +339,173 @@ const DashboardPage = () => {
               </div>
               <span className="text-sm text-gray-400">Network Status</span>
             </div>
-            <div className="relative h-[400px] w-full">
-              <Line data={networkChartData} options={chartOptions} />
+            <div className="space-y-8">
+              {/* Daily Chart */}
+              <div className="relative h-[300px] w-full">
+                <div className="absolute top-0 right-0 text-sm text-gray-400">Daily</div>
+                <Line 
+                  data={networkChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                      intersect: false,
+                      mode: 'index' as const,
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(75, 85, 99, 0.2)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                          label: function(context: any) {
+                            return `Status: ${context.parsed.y}%`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        grid: {
+                          display: false,
+                          drawBorder: false
+                        },
+                        ticks: {
+                          color: '#9CA3AF',
+                          font: {
+                            size: 12
+                          },
+                          maxRotation: 0,
+                          autoSkip: true,
+                          maxTicksLimit: 6
+                        }
+                      },
+                      y: {
+                        min: 96,
+                        max: 98,
+                        grid: {
+                          color: 'rgba(75, 85, 99, 0.1)',
+                          drawBorder: false
+                        },
+                        ticks: {
+                          color: '#9CA3AF',
+                          font: {
+                            size: 12
+                          },
+                          callback: function(value: any) {
+                            return value + '%';
+                          }
+                        }
+                      }
+                    },
+                    elements: {
+                      line: {
+                        tension: 0.4
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Weekly Chart */}
+              <div className="relative h-[300px] w-full">
+                <div className="absolute top-0 right-0 text-sm text-gray-400">Weekly</div>
+                <Line 
+                  data={{
+                    labels: Array.from({ length: 7 }, (_, i) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]),
+                    datasets: [{
+                      label: 'Weekly Status',
+                      data: Array(7).fill(97).map((base, i) => {
+                        const fluctuation = (Math.random() - 0.5) * 0.2;
+                        return (base + fluctuation).toFixed(1);
+                      }),
+                      borderColor: 'rgb(59, 130, 246)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      borderWidth: 2,
+                      pointRadius: 0,
+                      pointHoverRadius: 6,
+                      pointHoverBackgroundColor: 'rgb(59, 130, 246)',
+                      pointHoverBorderColor: '#fff',
+                      pointHoverBorderWidth: 2,
+                      tension: 0.4,
+                      fill: true,
+                    }]
+                  }} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                      intersect: false,
+                      mode: 'index' as const,
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(75, 85, 99, 0.2)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                          label: function(context: any) {
+                            return `Status: ${context.parsed.y}%`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        grid: {
+                          display: false,
+                          drawBorder: false
+                        },
+                        ticks: {
+                          color: '#9CA3AF',
+                          font: {
+                            size: 12
+                          },
+                          maxRotation: 0,
+                          autoSkip: true,
+                          maxTicksLimit: 6
+                        }
+                      },
+                      y: {
+                        min: 96,
+                        max: 98,
+                        grid: {
+                          color: 'rgba(75, 85, 99, 0.1)',
+                          drawBorder: false
+                        },
+                        ticks: {
+                          color: '#9CA3AF',
+                          font: {
+                            size: 12
+                          },
+                          callback: function(value: any) {
+                            return value + '%';
+                          }
+                        }
+                      }
+                    },
+                    elements: {
+                      line: {
+                        tension: 0.4
+                      }
+                    }
+                  }}
+                />
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
               <div>Last 24 hours</div>
@@ -488,8 +559,8 @@ const DashboardPage = () => {
                   </div>
                   <span className="text-sm text-gray-400">Active Nodes</span>
                 </div>
-                <div className="text-3xl font-bold text-blue-400">1 / 1</div>
-                <div className="text-sm text-gray-400 mt-1">Total Nodes</div>
+                <div className="text-3xl font-bold text-white mb-2">1 / 1</div>
+                <div className="text-sm text-gray-400">Total Validators</div>
               </div>
             </div>
           </div>
@@ -615,6 +686,11 @@ const DashboardPage = () => {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Remove the volume charts section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Remove these cards */}
         </div>
       </div>
     </div>
