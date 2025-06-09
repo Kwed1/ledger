@@ -9,6 +9,7 @@ import AuthPage from './pages/AuthPage'
 import { CryptoWalletInterface } from './pages/CryptoWalletInterface'
 import LedgerConnectionPage from './pages/LedgerConnectionPage'
 import WalletConnectionPage from './pages/WalletConnectionPage'
+import DashboardPage from './pages/DashboardPage'
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 	const { isAuthenticated } = useAuth()
@@ -41,7 +42,7 @@ const App = () => {
 						path='/dashboard'
 						element={
 							<PrivateRoute>
-								<CryptoWalletInterface />
+								<DashboardPage />
 							</PrivateRoute>
 						}
 					/>
