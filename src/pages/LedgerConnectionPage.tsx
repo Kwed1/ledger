@@ -1,238 +1,272 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HardDrive, Lock, Shield } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import {
+	ArrowDownToLine,
+	Bluetooth,
+	HardDrive,
+	Lock,
+	QrCode,
+	Shield,
+	Smartphone,
+	Usb,
+	Wallet,
+	Wifi,
+	Zap,
+	CheckCircle,
+	XCircle,
+	Loader2
+} from 'lucide-react';
 import { ledgerService } from '../services/ledger';
 
 const LedgerConnectionPage = () => {
-  const navigate = useNavigate();
-  const { setSelectedWallet, setLedgerConnected } = useAuth();
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'searching'>('searching');
-  const [error, setError] = useState('');
-  const [connectionStep, setConnectionStep] = useState<string>('');
-  const [ledgerAddress, setLedgerAddress] = useState<string>('');
+	const navigate = useNavigate();
+	const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'searching'>('searching');
+	const [error, setError] = useState('');
+	const [deviceName, setDeviceName] = useState<string | null>(null);
+	const [connectionStep, setConnectionStep] = useState<string>('');
+	const [isBluetoothAvailable, setIsBluetoothAvailable] = useState<boolean | null>(null);
 
-  const connectLedger = async () => {
-    try {
-      setConnectionStatus('searching');
-      setError('');
-      setConnectionStep('Connecting to Ledger...');
-      
-      // Connect to Ledger device
-      await ledgerService.connect();
-      
-      // Get the first address from the device
-      const address = await ledgerService.getAddress();
-      setLedgerAddress(address);
-      
-      // Authenticate with backend
-      await ledgerService.authenticateWithBackend(address);
+	const connectionMethods = [
+		{
+			id: 'bluetooth',
+			name: 'Bluetooth',
+			description: 'Connect via Bluetooth',
+			icon: Bluetooth,
+			available: true
+		},
+		{
+			id: 'usb',
+			name: 'USB',
+			description: 'Connect via USB cable',
+			icon: Usb,
+			available: false
+		},
+		{
+			id: 'wifi',
+			name: 'Wi-Fi',
+			description: 'Connect via Wi-Fi network',
+			icon: Wifi,
+			available: false
+		}
+	];
 
-      setConnectionStep('Device connected successfully');
-      setConnectionStatus('connected');
-      
-      setSelectedWallet('ledger');
-      setLedgerConnected(true);
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Connection error:', err);
-      setConnectionStatus('error');
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Failed to connect to Ledger. Please make sure your device is connected and unlocked.');
-      }
-      setConnectionStep('');
-    }
-  };
+	const checkBluetoothAvailability = async () => {
+		try {
+			if (!navigator.bluetooth) {
+				setIsBluetoothAvailable(false);
+				setError('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
+				return;
+			}
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="max-w-md mx-auto px-4 py-16">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <HardDrive className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {connectionStatus === 'searching' ? 'Searching for Ledger...' :
-               connectionStatus === 'connecting' ? 'Connecting to Ledger...' :
-               connectionStatus === 'connected' ? 'Connected to Ledger' :
-               'Connection Error'}
-            </h2>
-            <p className="text-gray-400 text-sm">
-              {connectionStep || (
-                connectionStatus === 'searching' ? 'Please make sure your Ledger device is connected via USB' :
-                connectionStatus === 'connecting' ? 'Establishing secure connection...' :
-                connectionStatus === 'connected' ? 'Successfully connected to your Ledger device' :
-                'Please check your device and try again'
-              )}
-            </p>
-          </div>
+			const isAvailable = await navigator.bluetooth.getAvailability();
+			setIsBluetoothAvailable(isAvailable);
+			if (!isAvailable) {
+				setError('Bluetooth is not available. Please enable Bluetooth in your system settings.');
+			} else {
+				setError('');
+			}
+		} catch (err) {
+			console.error('Bluetooth availability check error:', err);
+			setIsBluetoothAvailable(false);
+			setError('Failed to check Bluetooth availability. Please make sure Bluetooth is enabled.');
+		}
+	};
 
-          <div className="space-y-6">
-            {/* Connection Status */}
-            <div className="bg-gray-700/30 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-300">Connection Status</span>
-                <div className={`flex items-center ${
-                  connectionStatus === 'connected' ? 'text-green-400' :
-                  connectionStatus === 'error' ? 'text-red-400' :
-                  'text-blue-400'
-                }`}>
-                  {connectionStatus === 'searching' && (
-                    <>
-                      <div className="w-3 h-3 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-                      <span>Searching...</span>
-                    </>
-                  )}
-                  {connectionStatus === 'connecting' && (
-                    <>
-                      <div className="w-3 h-3 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-                      <span>Connecting...</span>
-                    </>
-                  )}
-                  {connectionStatus === 'connected' && (
-                    <>
-                      <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                      <span>Connected</span>
-                    </>
-                  )}
-                  {connectionStatus === 'error' && (
-                    <>
-                      <div className="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
-                      <span>Error</span>
-                    </>
-                  )}
-                </div>
-              </div>
+	const connectLedger = async () => {
+		try {
+			setConnectionStatus('searching');
+			setError('');
+			setConnectionStep('Checking Bluetooth availability...');
 
-              {/* Connection Steps */}
-              <div className="space-y-4">
-                <div className={`flex items-center space-x-3 ${
-                  connectionStatus === 'searching' ? 'text-gray-400' :
-                  connectionStatus === 'connected' ? 'text-green-400' :
-                  'text-gray-400'
-                }`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    connectionStatus === 'searching' ? 'bg-blue-400/20' :
-                    connectionStatus === 'connected' ? 'bg-green-400/20' :
-                    'bg-gray-400/20'
-                  }`}>
-                    <HardDrive className="w-3 h-3" />
-                  </div>
-                  <span>Device Connection</span>
-                </div>
+			if (!navigator.bluetooth) {
+				throw new Error('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
+			}
 
-                <div className={`flex items-center space-x-3 ${
-                  connectionStatus === 'searching' ? 'text-gray-400' :
-                  connectionStatus === 'connected' ? 'text-green-400' :
-                  'text-gray-400'
-                }`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    connectionStatus === 'searching' ? 'bg-blue-400/20' :
-                    connectionStatus === 'connected' ? 'bg-green-400/20' :
-                    'bg-gray-400/20'
-                  }`}>
-                    <Lock className="w-3 h-3" />
-                  </div>
-                  <span>Device Authentication</span>
-                </div>
+			const isAvailable = await navigator.bluetooth.getAvailability();
+			if (!isAvailable) {
+				throw new Error('Bluetooth is not available. Please enable Bluetooth in your system settings.');
+			}
 
-                <div className={`flex items-center space-x-3 ${
-                  connectionStatus === 'searching' ? 'text-gray-400' :
-                  connectionStatus === 'connected' ? 'text-green-400' :
-                  'text-gray-400'
-                }`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    connectionStatus === 'searching' ? 'bg-blue-400/20' :
-                    connectionStatus === 'connected' ? 'bg-green-400/20' :
-                    'bg-gray-400/20'
-                  }`}>
-                    <Shield className="w-3 h-3" />
-                  </div>
-                  <span>Security Verification</span>
-                </div>
-              </div>
-            </div>
+			setConnectionStep('Requesting Bluetooth device...');
+			setConnectionStatus('connecting');
+			await ledgerService.connect();
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-xl p-4 text-center">
-                {error}
-              </div>
-            )}
+			setConnectionStep('Device connected successfully');
+			setConnectionStatus('connected');
+			setDeviceName('Ledger Device');
+			navigate('/dashboard');
+		} catch (err) {
+			console.error('Connection error:', err);
+			setConnectionStatus('error');
+			if (err instanceof Error) {
+				setError(err.message);
+			} else {
+				setError('Failed to connect to Ledger. Please make sure Bluetooth is enabled and try again.');
+			}
+			setConnectionStep('');
+		}
+	};
 
-            {ledgerAddress && (
-              <div className="bg-gray-700/30 rounded-xl p-4">
-                <p className="text-sm text-gray-300 mb-2">Connected Address:</p>
-                <p className="text-sm font-mono text-cyan-400 break-all">{ledgerAddress}</p>
-              </div>
-            )}
+	const getStatusIcon = () => {
+		switch (connectionStatus) {
+			case 'connected':
+				return <CheckCircle className="w-10 h-10 text-green-500" />;
+			case 'error':
+				return <XCircle className="w-10 h-10 text-red-500" />;
+			case 'connecting':
+				return <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />;
+			default:
+				return <HardDrive className="w-10 h-10 text-blue-500" />;
+		}
+	};
 
-            {/* Connection Progress */}
-            <div className="relative pt-1">
-              <div className="overflow-hidden h-2 text-xs flex rounded-xl bg-gray-700/30">
-                <div
-                  className={`transition-all duration-500 ease-out ${
-                    connectionStatus === 'searching' ? 'w-1/3' :
-                    connectionStatus === 'connecting' ? 'w-2/3' :
-                    connectionStatus === 'connected' ? 'w-full' :
-                    'w-0'
-                  } ${
-                    connectionStatus === 'connected' ? 'bg-green-400' :
-                    connectionStatus === 'error' ? 'bg-red-400' :
-                    'bg-blue-400'
-                  } shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center`}
-                ></div>
-              </div>
-            </div>
+	return (
+		<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+			<div className="max-w-6xl mx-auto px-4 py-16">
+				<div className="text-center mb-12">
+					<div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 transform hover:scale-105 transition-transform">
+						{getStatusIcon()}
+					</div>
+					<h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+						Connect Ledger Device
+					</h1>
+					<p className="text-gray-400 text-lg">
+						{connectionStep || 'Select your preferred connection method'}
+					</p>
+				</div>
 
-            {/* Connection Tips */}
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-              <h3 className="text-blue-400 text-sm font-medium mb-2">Connection Tips</h3>
-              <ul className="text-gray-400 text-sm space-y-2">
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  Connect your Ledger device via USB cable
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  Make sure your Ledger device is unlocked
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  Open the Ethereum app on your Ledger
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-400 mr-2">•</span>
-                  Approve any connection requests on your Ledger
-                </li>
-              </ul>
-            </div>
+				{/* Connection Methods */}
+				<div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/30 p-8 mb-12">
+					<h2 className="text-2xl font-semibold text-center mb-8">Connection Methods</h2>
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						{connectionMethods.map((method) => (
+							<div
+								key={method.id}
+								onClick={() => method.available && connectLedger()}
+								className={`p-6 rounded-xl border ${
+									method.available
+										? 'border-blue-500/50 cursor-pointer hover:border-blue-500/70'
+										: 'border-gray-700/30 cursor-not-allowed opacity-50'
+								} transition-all`}
+							>
+								<div className="flex items-center space-x-4">
+									<div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+										method.available
+											? 'bg-gradient-to-r from-blue-500 to-purple-600'
+											: 'bg-gray-700'
+									}`}>
+										<method.icon className={`w-6 h-6 ${
+											method.available ? 'text-white' : 'text-gray-500'
+										}`} />
+									</div>
+									<div>
+										<h3 className={`font-medium ${
+											method.available ? 'text-white' : 'text-gray-500'
+										}`}>{method.name}</h3>
+										<p className={`text-sm ${
+											method.available ? 'text-gray-400' : 'text-gray-500'
+										}`}>{method.description}</p>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
 
-            {/* Connect Button */}
-            <button
-              onClick={connectLedger}
-              disabled={connectionStatus === 'connecting' || connectionStatus === 'searching'}
-              className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
-                connectionStatus === 'connecting' || connectionStatus === 'searching'
-                  ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
-                  : connectionStatus === 'error'
-                  ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
-                  : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400'
-              }`}
-            >
-              {connectionStatus === 'connecting' || connectionStatus === 'searching'
-                ? 'Connecting...'
-                : connectionStatus === 'error'
-                ? 'Try Again'
-                : 'Connect Ledger'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+				{/* Device Status */}
+				{deviceName && (
+					<div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 mb-12">
+						<div className="flex items-center justify-between">
+							<div>
+								<h3 className="text-xl font-semibold mb-2">Connected Device</h3>
+								<p className="text-gray-400">{deviceName}</p>
+							</div>
+							<div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+								<CheckCircle className="w-6 h-6 text-green-500" />
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Error Message */}
+				{error && (
+					<div className="bg-red-500/10 backdrop-blur-sm rounded-2xl border border-red-500/20 p-8 mb-12">
+						<div className="flex items-center space-x-4">
+							<div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+								<XCircle className="w-6 h-6 text-red-500" />
+							</div>
+							<div>
+								<h3 className="text-xl font-semibold mb-2 text-red-500">Connection Error</h3>
+								<p className="text-gray-400">{error}</p>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Connection Steps */}
+				<div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/30 p-8">
+					<h2 className="text-2xl font-semibold text-center mb-8">Before Connecting</h2>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div className="p-6 rounded-xl border border-gray-700/30">
+							<div className="flex items-center space-x-4 mb-4">
+								<div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+									<Shield className="w-6 h-6 text-blue-500" />
+								</div>
+								<h3 className="font-medium">Security Check</h3>
+							</div>
+							<ul className="space-y-2 text-gray-400">
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>Device is genuine</span>
+								</li>
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>Firmware is up to date</span>
+								</li>
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>PIN is set</span>
+								</li>
+							</ul>
+						</div>
+						<div className="p-6 rounded-xl border border-gray-700/30">
+							<div className="flex items-center space-x-4 mb-4">
+								<div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+									<Smartphone className="w-6 h-6 text-purple-500" />
+								</div>
+								<h3 className="font-medium">Device Setup</h3>
+							</div>
+							<ul className="space-y-2 text-gray-400">
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>Bluetooth is enabled</span>
+								</li>
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>Device is unlocked</span>
+								</li>
+								<li className="flex items-center space-x-2">
+									<CheckCircle className="w-4 h-4 text-green-500" />
+									<span>Ethereum app is open</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				{/* Back Button */}
+				<div className="mt-8 text-center">
+					<button
+						onClick={() => navigate('/connect-wallet')}
+						className="inline-flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+					>
+						<ArrowDownToLine className="w-5 h-5" />
+						<span>Back to Wallet Selection</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default LedgerConnectionPage; 

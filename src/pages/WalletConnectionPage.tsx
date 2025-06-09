@@ -117,7 +117,7 @@ const WalletConnectionPage = () => {
   const handleWalletSelect = (wallet: string) => {
     setSelectedConnection(wallet);
     if (wallet === 'ledger') {
-      connectLedger();
+      navigate('/ledger');
     }
   };
 

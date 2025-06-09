@@ -1,6 +1,6 @@
-import TransportWebHID from '@ledgerhq/hw-transport-webhid'
-import Eth from '@ledgerhq/hw-app-eth'
-import Web3 from 'web3'
+import TransportWebHID from "@ledgerhq/hw-transport-webhid";
+import Eth from "@ledgerhq/hw-app-eth";
+import Web3 from "web3";
 import { useAuth } from '../contexts/AuthContext'
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { ethers } from 'ethers'
