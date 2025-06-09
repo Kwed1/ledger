@@ -69,6 +69,7 @@ export interface UserData {
 	balances: UserBalance[]
 	createdAt: string
 	lastLogin: string
+	ledgerAddress?: string
 }
 
 export const signInWithGoogle = async (): Promise<UserData> => {

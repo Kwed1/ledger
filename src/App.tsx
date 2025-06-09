@@ -1,8 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import AuthPage from './pages/AuthPage';
-import WalletConnectionPage from './pages/WalletConnectionPage';
-import CryptoWalletInterface from './pages/CryptoWalletInterface';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import AuthPage from './pages/AuthPage'
+import { CryptoWalletInterface } from './pages/CryptoWalletInterface'
+import WalletConnectionPage from './pages/WalletConnectionPage'
 
 const App = () => {
 	return (
