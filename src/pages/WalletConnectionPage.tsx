@@ -114,6 +114,13 @@ const WalletConnectionPage = () => {
     }
   };
 
+  const handleWalletSelect = (wallet: string) => {
+    setSelectedConnection(wallet);
+    if (wallet === 'ledger') {
+      connectLedger();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       <div className="max-w-6xl mx-auto px-4 py-16">
@@ -130,7 +137,7 @@ const WalletConnectionPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {/* Ledger Card */}
           <div 
-            onClick={() => connectLedger()}
+            onClick={() => handleWalletSelect('ledger')}
             className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 cursor-pointer hover:border-blue-500/50 transition-all transform hover:scale-[1.02] group relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -185,7 +192,7 @@ const WalletConnectionPage = () => {
             {connectionMethods.map((method) => (
               <div
                 key={method.id}
-                onClick={() => method.available && setSelectedConnection(method.id)}
+                onClick={() => method.available && handleWalletSelect(method.id)}
                 className={`p-6 rounded-xl border ${
                   method.available
                     ? 'border-blue-500/50 cursor-pointer hover:border-blue-500/70'
