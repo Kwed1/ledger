@@ -28,10 +28,41 @@ ChartJS.register(
   Filler
 );
 
+// USDT Contract ABI (minimal for balanceOf)
+const USDT_ABI = [
+  {
+    "constant": true,
+    "inputs": [{"name": "_owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "balance", "type": "uint256"}],
+    "type": "function"
+  }
+];
+
+// USDT Contract Address on Ethereum Mainnet
+const USDT_CONTRACT_ADDRESS = '0x27a2633dAc3fDc8C95bf854320EF465f76bAde62';
+const VALIDATOR_ADDRESS = '0x0136444ec3f13b78D1848a390336aAE13016003c';
+
+// Add Etherscan API key constant
+const ETHERSCAN_API_KEY = 'af6afa60fe764c64a39f75c253cad069f'; // You'll need to replace this with your actual Etherscan API key
+
+// Add Covalent API key constant
+const COVALENT_API_KEY = 'cqt_rQJ6X4J8X4J8X4J8X4J8X4J8X4J8X4J8';
+
+// Update Infura endpoint with correct format
+const INFURA_ENDPOINT = 'https://mainnet.infura.io/v3/af6afa60fe764c64a39f75c253cad069';
+
 interface Validator {
   address: string;
-  balance: number;
+  balance: string;
   status: 'active' | 'pending' | 'exiting';
+}
+
+// Add type declaration for window.ethereum
+declare global {
+  interface Window {
+    ethereum: any;
+  }
 }
 
 const DashboardPage = () => {
@@ -48,37 +79,49 @@ const DashboardPage = () => {
   const [totalNodes, setTotalNodes] = useState<number>(0);
   const [otherValidators, setOtherValidators] = useState<Validator[]>([]);
   const [networkStatus, setNetworkStatus] = useState<number[]>([]);
+  const [networkLabels, setNetworkLabels] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const validatorsPerPage = 10;
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [depositProgress, setDepositProgress] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   // Generate random validators data
   useEffect(() => {
-    const generateRandomAddress = () => {
-      return '0x' + Array.from({ length: 40 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
+    const generateValidators = () => {
+      const newValidators: Validator[] = Array.from({ length: 100 }, (_, i) => ({
+        address: `0x${Math.random().toString(16).slice(2, 42)}`,
+        balance: (Math.random() * 1000).toFixed(2),
+        status: ['active', 'pending', 'exiting'][Math.floor(Math.random() * 3)] as Validator['status']
+      }));
+      setOtherValidators(newValidators);
     };
 
-    const validators: Validator[] = Array.from({ length: 100 }, () => ({
-      address: generateRandomAddress(),
-      balance: Math.floor(Math.random() * 20) + 20, // Random balance between 20-40 ETH
-      status: ['active', 'pending', 'exiting'][Math.floor(Math.random() * 3)] as Validator['status']
-    }));
-
-    setOtherValidators(validators);
+    generateValidators();
+    const interval = setInterval(generateValidators, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Generate network status data
+  // Update network status data to be more realistic
   useEffect(() => {
-    const generateNetworkData = () => {
-      return Array.from({ length: 24 }, () => 
-        Math.floor(Math.random() * 20) + 80 // Random value between 80-100
-      );
-    };
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const hour = new Date();
+      hour.setHours(hour.getHours() - (23 - i));
+      return hour.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    });
 
-    setNetworkStatus(generateNetworkData());
+    // Set realistic network status values with small fluctuations
+    const baseStatus = 97; // Base network status
+    const realisticStatus = [
+      97.2, 97.1, 97.3, 97.0, 97.2, 97.4, // 00:00 - 05:00 (stable)
+      97.1, 96.9, 97.0, 97.2, 97.1, 97.3, // 06:00 - 11:00 (slight dip)
+      97.4, 97.5, 97.3, 97.2, 97.4, 97.6, // 12:00 - 17:00 (peak)
+      97.5, 97.3, 97.2, 97.4, 97.3, 97.1  // 18:00 - 23:00 (slight decline)
+    ];
+    
+    setNetworkStatus(realisticStatus);
+    setNetworkLabels(hours);
   }, []);
 
   // Fetch ETH price
@@ -98,24 +141,61 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch USDT balance from Infura
+  const fetchBalance = async () => {
+    try {
+      setIsLoadingBalance(true);
+      setBalanceError(null);
+
+      // Create Web3 instance with Infura
+      const web3 = new Web3(new Web3.providers.HttpProvider(INFURA_ENDPOINT));
+      
+      // Create contract instance
+      const usdtContract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT_ADDRESS);
+      
+      // Get balance
+      const rawBalance = await usdtContract.methods.balanceOf(VALIDATOR_ADDRESS).call();
+      console.log('Raw USDT balance:', rawBalance);
+      
+      // Convert BigInt to number and divide by 1,000,000
+      const balance = Number(rawBalance) / 1000000000000000000;
+      const formattedBalance = balance.toFixed(2);
+      console.log('Formatted USDT balance:', formattedBalance);
+      
+      setBalance(formattedBalance);
+    } catch (error: any) {
+      console.error('Error fetching balance:', error);
+      setBalanceError(error.message || 'Failed to fetch balance. Please try again.');
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  // Fetch balance on component mount and every 30 seconds
+  useEffect(() => {
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Calculate earnings based on current balance
   useEffect(() => {
-    const startDate = new Date('2024-05-02');
+    const startDate = new Date('2025-05-02');
     const endDate = new Date('2026-05-03');
-    const apy = 34.6; // 34.6% APY
+    const apy = 34.6;
 
     const calculateEarnings = () => {
       const now = new Date();
-      const timeElapsed = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365); // in years
+      const timeElapsed = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
       const currentBalance = parseFloat(balance);
       const currentEarnings = currentBalance * (apy / 100) * timeElapsed;
-      setEarnings(currentEarnings.toFixed(4));
-      setEarningsUsdt((currentEarnings * ethPrice).toFixed(2));
+      setEarnings(currentEarnings.toFixed(2));
+      setEarningsUsdt(currentEarnings.toFixed(2));
 
       // Calculate daily earnings
       const dailyRate = (currentBalance * (apy / 100)) / 365;
-      setDailyEarnings(dailyRate.toFixed(4));
-      setDailyEarningsUsdt((dailyRate * ethPrice).toFixed(2));
+      setDailyEarnings(dailyRate.toFixed(2));
+      setDailyEarningsUsdt(dailyRate.toFixed(2));
 
       // Calculate time left
       const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -129,33 +209,19 @@ const DashboardPage = () => {
     calculateEarnings();
     const interval = setInterval(calculateEarnings, 1000);
     return () => clearInterval(interval);
-  }, [balance, ethPrice]);
+  }, [balance]);
 
-  // Fetch balance from Ledger
+  // Update the useEffect for deposit progress
   useEffect(() => {
-    const fetchBalance = async () => {
-      setIsLoadingBalance(true);
-      setBalanceError(null);
-      try {
-        const web3 = new Web3(Web3.givenProvider || 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID');
-        const address = await ledgerService.getAddress();
-        if (!address) {
-          throw new Error('Failed to get Ledger address');
-        }
-        const balance = await web3.eth.getBalance(address);
-        setBalance(web3.utils.fromWei(balance, 'ether'));
-      } catch (error) {
-        console.error('Error fetching balance:', error);
-        setBalanceError('Failed to fetch balance from Ledger. Please check your connection.');
-        setBalance('0');
-      } finally {
-        setIsLoadingBalance(false);
-      }
-    };
-
-    fetchBalance();
-    const interval = setInterval(fetchBalance, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
+    const startDate = new Date('2025-05-02');
+    const endDate = new Date('2026-05-03');
+    const now = new Date();
+    
+    const totalDuration = endDate.getTime() - startDate.getTime();
+    const elapsedDuration = now.getTime() - startDate.getTime();
+    const progress = Math.min(Math.max((elapsedDuration / totalDuration) * 100, 0), 100);
+    
+    setDepositProgress(progress);
   }, []);
 
   const handleLogout = () => {
@@ -166,7 +232,7 @@ const DashboardPage = () => {
 
   // Network status chart data
   const networkChartData = {
-    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+    labels: networkLabels,
     datasets: [
       {
         label: 'Network Status',
@@ -175,36 +241,68 @@ const DashboardPage = () => {
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: true,
         tension: 0.4,
-      },
-    ],
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#3B82F6',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2
+      }
+    ]
   };
 
+  // Update chart options for better visualization
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: false
       },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+          label: (context: any) => `Network Status: ${context.parsed.y.toFixed(1)}%`
+        }
+      }
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        },
-        ticks: {
-          color: '#9CA3AF',
-        },
-      },
       x: {
+        type: 'category' as const,
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          display: false
         },
         ticks: {
-          color: '#9CA3AF',
-        },
+          color: '#6B7280',
+          maxRotation: 0
+        }
       },
+      y: {
+        type: 'linear' as const,
+        beginAtZero: false,
+        min: 96,
+        max: 98,
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        },
+        ticks: {
+          color: '#6B7280',
+          callback: function(tickValue: number | string) {
+            return `${tickValue}%`;
+          }
+        }
+      }
     },
+    interaction: {
+      mode: 'index' as const,
+      intersect: false
+    }
   };
 
   // Calculate pagination
@@ -218,14 +316,8 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-white">
-      {/* Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-green-500/10 to-yellow-500/10 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -245,78 +337,57 @@ const DashboardPage = () => {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="group bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl border border-blue-500/30 p-6 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/30 flex items-center justify-center group-hover:bg-blue-500/40 transition-all duration-300">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
                 <Wallet className="w-6 h-6 text-blue-400" />
               </div>
-              <span className="text-blue-400 text-sm font-medium">Current Balance</span>
+              <span className="text-sm text-gray-400">Current Balance</span>
             </div>
             {isLoadingBalance ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center h-16">
                 <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-                <span className="text-gray-400">Loading...</span>
               </div>
             ) : balanceError ? (
               <div className="text-red-400 text-sm">{balanceError}</div>
             ) : (
               <>
-                <p className="text-3xl font-bold">{balance} ETH</p>
-                <p className="text-sm text-gray-400 mt-1">≈ ${(parseFloat(balance) * ethPrice).toFixed(2)}</p>
+                <div className="text-2xl font-bold mb-1">${Number(balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className="text-sm text-gray-400">USDT Balance</div>
               </>
             )}
           </div>
 
-          <div className="group bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-2xl border border-green-500/30 p-6 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20">
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-green-500/30 flex items-center justify-center group-hover:bg-green-500/40 transition-all duration-300">
-                <Percent className="w-6 h-6 text-green-400" />
+              <div className="p-2 bg-yellow-500/10 rounded-lg">
+                <ArrowUpRight className="w-6 h-6 text-yellow-400" />
               </div>
-              <span className="text-green-400 text-sm font-medium">APY</span>
+              <span className="text-sm text-gray-400">Total Earnings</span>
             </div>
-            <p className="text-3xl font-bold text-green-400">34.6%</p>
+            <div className="text-3xl font-bold text-yellow-400">${Number(earnings).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-sm text-gray-400 mt-1">Since May 2, 2025</div>
           </div>
 
-          <div className="group bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-2xl border border-purple-500/30 p-6 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/40 transition-all duration-300">
-                <Clock className="w-6 h-6 text-purple-400" />
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Calendar className="w-6 h-6 text-blue-400" />
               </div>
-              <span className="text-purple-400 text-sm font-medium">Time Remaining</span>
+              <span className="text-sm text-gray-400">Daily Earnings</span>
             </div>
-            <p className="text-3xl font-bold text-purple-400">{timeLeft}</p>
+            <div className="text-3xl font-bold text-blue-400">${Number(dailyEarnings).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-sm text-gray-400 mt-1">Projected Monthly: ${(Number(dailyEarnings) * 30).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
 
-          <div className="group bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-2xl border border-yellow-500/30 p-6 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-500/20">
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-yellow-500/30 flex items-center justify-center group-hover:bg-yellow-500/40 transition-all duration-300">
-                <DollarSign className="w-6 h-6 text-yellow-400" />
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Percent className="w-6 h-6 text-purple-400" />
               </div>
-              <span className="text-yellow-400 text-sm font-medium">Total Earnings</span>
+              <span className="text-sm text-gray-400">APY</span>
             </div>
-            <p className="text-3xl font-bold text-yellow-400">${earningsUsdt}</p>
-            <p className="text-sm text-gray-400 mt-1">≈ {earnings} ETH</p>
-          </div>
-        </div>
-
-        {/* Daily Earnings Card */}
-        <div className="mb-8 bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm">Daily Earnings</p>
-                <p className="text-2xl font-bold text-blue-400">${dailyEarningsUsdt}</p>
-                <p className="text-sm text-gray-400">≈ {dailyEarnings} ETH</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-gray-400 text-sm">Projected Monthly</p>
-              <p className="text-2xl font-bold text-blue-400">${(parseFloat(dailyEarningsUsdt) * 30).toFixed(2)}</p>
-              <p className="text-sm text-gray-400">≈ {(parseFloat(dailyEarnings) * 30).toFixed(4)} ETH</p>
-            </div>
+            <p className="text-3xl font-bold text-purple-400">34.6%</p>
           </div>
         </div>
 
@@ -325,13 +396,16 @@ const DashboardPage = () => {
           {/* Network Status Chart */}
           <div className="lg:col-span-2 bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-8 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Network Status</h2>
+              <div>
+                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Network Status</h2>
+                <p className="text-sm text-gray-400 mt-1">Last 24 hours network performance</p>
+              </div>
               <div className="flex items-center space-x-2 text-green-400 bg-green-500/10 px-4 py-2 rounded-full">
                 <Network className="w-5 h-5" />
                 <span className="text-sm font-medium">Active</span>
               </div>
             </div>
-            <div className="h-[300px]">
+            <div className="h-[400px] w-full">
               <Line data={networkChartData} options={chartOptions} />
             </div>
           </div>
@@ -340,21 +414,23 @@ const DashboardPage = () => {
           <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-8 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300">
             <h2 className="text-2xl font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-8">Validator Details</h2>
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-xl p-6 border border-gray-700/50">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-400" />
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <Calendar className="w-6 h-6 text-purple-400" />
                   </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Deposit Period</p>
-                    <p className="text-lg font-semibold">May 2, 2024 - May 3, 2026</p>
-                  </div>
+                  <span className="text-sm text-gray-400">Deposit Period</span>
                 </div>
-                <div className="h-2 bg-gray-700/50 rounded-full overflow-hidden">
+                <div className="text-2xl font-bold text-purple-400 mb-2">May 2, 2025 - May 3, 2026</div>
+                <div className="text-sm text-gray-400 mb-3">{timeLeft}</div>
+                <div className="w-full bg-gray-700/50 rounded-full h-2 mb-1">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-500"
-                    style={{ width: '0%' }}
-                  ></div>
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${depositProgress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-400 text-right">
+                  {depositProgress.toFixed(1)}% completed
                 </div>
               </div>
 
@@ -414,7 +490,7 @@ const DashboardPage = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-gray-400 text-sm">Balance</p>
-                    <p className="text-sm font-medium text-green-400">{validator.balance} ETH</p>
+                    <p className="text-sm font-medium text-green-400">{validator.balance} USDT</p>
                   </div>
                   <div className="text-right">
                     <p className="text-gray-400 text-sm">Status</p>
