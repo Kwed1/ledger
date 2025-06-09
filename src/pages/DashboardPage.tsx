@@ -387,7 +387,8 @@ const DashboardPage = () => {
               </div>
               <span className="text-sm text-gray-400">APY</span>
             </div>
-            <p className="text-3xl font-bold text-purple-400">34.6%</p>
+            <div className="text-3xl font-bold text-purple-400">34.6% APR</div>
+            <div className="text-sm text-gray-400 mt-1">Fixed Rate</div>
           </div>
         </div>
 
