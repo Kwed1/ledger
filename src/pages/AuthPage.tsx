@@ -31,17 +31,14 @@ const AuthPage = () => {
 	const [showPassword, setShowPassword] = useState(false)
 	const [showStakerPassword, setShowStakerPassword] = useState(false)
 	const [show2FAModal, setShow2FAModal] = useState(false)
+	const [is2FAVerified, setIs2FAVerified] = useState(false)
+	const [is2FASetup, setIs2FASetup] = useState(false)
 
 	useEffect(() => {
-		if (isAuthenticated) {
-			// Check if we need to show 2FA setup
-			if (!userData?.has2FA && !userData?.last2FAPrompt) {
-				setShow2FAModal(true)
-			} else {
-				navigate('/connect-wallet')
-			}
-		}
-	}, [isAuthenticated, userData, navigate])
+		// Check if 2FA is already set up
+		const twoFactorKey = localStorage.getItem('twoFactorKey')
+		setIs2FASetup(!!twoFactorKey)
+	}, [])
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target
@@ -58,6 +55,8 @@ const AuthPage = () => {
 
 		try {
 			await signIn(formData)
+			setIs2FAVerified(false)
+			setShow2FAModal(true)
 		} catch (err) {
 			setError('Invalid credentials. Please try again.')
 		} finally {
@@ -81,7 +80,16 @@ const AuthPage = () => {
 		setSelectedWallet(wallet)
 	}
 
-	const handle2FASuccess = () => {
+	const handle2FASuccess = (key?: string) => {
+		setShow2FAModal(false)
+		setIs2FAVerified(true)
+		if (key) {
+			localStorage.setItem('twoFactorKey', key)
+		}
+		navigate('/connect-wallet')
+	}
+
+	const handle2FAClose = () => {
 		setShow2FAModal(false)
 		navigate('/connect-wallet')
 	}
@@ -270,8 +278,9 @@ const AuthPage = () => {
 
 			<TwoFactorAuthModal
 				isOpen={show2FAModal}
-				onClose={() => setShow2FAModal(false)}
+				onClose={handle2FAClose}
 				onSuccess={handle2FASuccess}
+				isSetup={!is2FASetup}
 			/>
 		</>
 	)
