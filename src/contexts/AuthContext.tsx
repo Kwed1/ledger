@@ -2,13 +2,10 @@ import { Secret, TOTP } from 'otpauth'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 interface UserData {
-  balances: Array<{
-    coinId: string;
-    amount: number;
-  }>;
+  balances: any[];
   has2FA: boolean;
-  twoFactorSecret?: string;
   twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
   last2FAPrompt?: string;
   ledgerAddress?: string;
 }
@@ -17,18 +14,19 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: any;
   userData: UserData | null;
-  signIn: (credentials: { nodeId: string; password: string; stakerPassword: string }) => Promise<void>;
+  signIn: (credentials: { nodeId: string; password: string; stakerPassword: string }) => Promise<boolean>;
   signOut: () => void;
   updateBalance: (balances: UserData['balances']) => void;
   selectedWallet: string | null;
   isLedgerConnected: boolean;
-  setSelectedWallet: (wallet: string) => void;
+  setSelectedWallet: (wallet: string | null) => void;
   setLedgerConnected: (connected: boolean) => void;
   setup2FA: () => Promise<{ secret: string; qrCode: string }>;
   verify2FA: (code: string) => Promise<boolean>;
-  skip2FA: () => Promise<void>;
+  skip2FA: () => Promise<boolean>;
   enable2FA: (secret: string, code: string) => Promise<void>;
   disable2FA: (code: string) => Promise<void>;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,57 +37,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
   const [isLedgerConnected, setLedgerConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing session
     const session = localStorage.getItem('authSession');
     if (session) {
-      const { user, userData, timestamp } = JSON.parse(session);
-      const now = new Date().getTime();
-      if (now - timestamp < 24 * 60 * 60 * 1000) { // 24 hours
-        setUser(user);
-        setUserData(userData);
-        setIsAuthenticated(true);
-      } else {
+      try {
+        const { user, userData, timestamp } = JSON.parse(session);
+        const now = new Date().getTime();
+        if (now - timestamp < 10 * 60 * 1000) { // 10 minutes
+          setUser(user);
+          setUserData(userData);
+          setIsAuthenticated(true);
+        } else {
+          // Session expired
+          localStorage.removeItem('authSession');
+          setUser(null);
+          setUserData(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Error parsing session:', error);
         localStorage.removeItem('authSession');
+        setUser(null);
+        setUserData(null);
+        setIsAuthenticated(false);
       }
     }
+    setIsLoading(false);
   }, []);
 
   const signIn = async (credentials: { nodeId: string; password: string; stakerPassword: string }) => {
     try {
-      // Here you would typically make an API call to authenticate
+      // Validate credentials
+      if (credentials.nodeId !== '123' || 
+          credentials.password !== '123' || 
+          credentials.stakerPassword !== '123') {
+        throw new Error('Invalid credentials');
+      }
+
       const user = {
         nodeId: credentials.nodeId,
-        // Add other user data as needed
       };
+
+      // Check if 2FA is already set up
+      const twoFactorKey = localStorage.getItem('twoFactorKey');
+      const has2FA = !!twoFactorKey;
 
       const userData: UserData = {
         balances: [],
-        has2FA: false,
-        twoFactorEnabled: false,
-        // Add other user data as needed
+        has2FA,
+        twoFactorEnabled: has2FA,
+        twoFactorSecret: twoFactorKey || undefined
       };
-
-      // Check if user has 2FA enabled
-      if (userData.twoFactorEnabled && userData.twoFactorSecret) {
-        // In a real implementation, you would verify the 2FA code here
-        const isVerified = await verify2FA('123456'); // This should be the actual code from the user
-        if (!isVerified) {
-          throw new Error('Invalid 2FA code');
-        }
-      }
 
       setUser(user);
       setUserData(userData);
-      setIsAuthenticated(true);
 
-      // Save session to localStorage
+      // Save session to localStorage with 10-minute expiration
       localStorage.setItem('authSession', JSON.stringify({
         user,
         userData,
         timestamp: new Date().getTime()
       }));
+
+      // If 2FA is enabled, we don't set isAuthenticated to true yet
+      // It will be set to true only after successful 2FA verification
+      if (has2FA) {
+        setIsAuthenticated(false);
+        return false; // Indicate that 2FA verification is needed
+      } else {
+        setIsAuthenticated(true);
+        return true; // No 2FA needed
+      }
     } catch (error) {
       console.error('Authentication error:', error);
       throw error;
@@ -114,12 +135,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setup2FA = async () => {
     try {
-      // Generate a new TOTP instance
       const totp = new TOTP({
         issuer: 'YourApp',
-        label: user?.nodeId || 'user',
-        algorithm: 'SHA1',
-        digits: 6,
+        label: user?.nodeId || 'User',
         period: 30,
         secret: new Secret({ size: 20 }) // Generate a random 20-byte secret
       });
@@ -135,23 +153,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verify2FA = async (code: string) => {
     try {
-      if (!userData?.twoFactorSecret) {
+      const twoFactorKey = localStorage.getItem('twoFactorKey');
+      if (!twoFactorKey) {
         throw new Error('No 2FA secret found');
       }
 
-      // Create a TOTP instance with the stored secret
       const totp = new TOTP({
         issuer: 'YourApp',
-        label: user?.nodeId || 'user',
-        algorithm: 'SHA1',
-        digits: 6,
+        label: user?.nodeId || 'User',
         period: 30,
-        secret: userData.twoFactorSecret
+        secret: twoFactorKey
       });
 
       // Validate the code
       const delta = totp.validate({ token: code, window: 1 });
-      return delta !== null;
+      if (delta !== null) {
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error verifying 2FA:', error);
       throw error;
@@ -160,13 +180,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const skip2FA = async () => {
     try {
-      if (userData) {
-        const updatedUserData = {
-          ...userData,
-          last2FAPrompt: new Date().toISOString()
-        };
-        setUserData(updatedUserData);
-        // In a real implementation, this would update the user data in your backend
+      // Only allow skipping if 2FA is not set up
+      const twoFactorKey = localStorage.getItem('twoFactorKey');
+      if (!twoFactorKey) {
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        throw new Error('2FA verification is required');
       }
     } catch (error) {
       console.error('Error skipping 2FA:', error);
@@ -176,12 +196,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const enable2FA = async (secret: string, code: string) => {
     try {
-      // Create a TOTP instance with the provided secret
       const totp = new TOTP({
         issuer: 'YourApp',
-        label: user?.nodeId || 'user',
-        algorithm: 'SHA1',
-        digits: 6,
+        label: user?.nodeId || 'User',
         period: 30,
         secret: secret
       });
@@ -195,12 +212,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userData) {
         const updatedUserData = {
           ...userData,
-          has2FA: true,
           twoFactorEnabled: true,
           twoFactorSecret: secret
         };
         setUserData(updatedUserData);
-        // In a real implementation, this would update the user data in your backend
       }
     } catch (error) {
       console.error('Error enabling 2FA:', error);
@@ -214,12 +229,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('No 2FA secret found');
       }
 
-      // Create a TOTP instance with the stored secret
       const totp = new TOTP({
         issuer: 'YourApp',
-        label: user?.nodeId || 'user',
-        algorithm: 'SHA1',
-        digits: 6,
+        label: user?.nodeId || 'User',
         period: 30,
         secret: userData.twoFactorSecret
       });
@@ -233,12 +245,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userData) {
         const updatedUserData = {
           ...userData,
-          has2FA: false,
           twoFactorEnabled: false,
           twoFactorSecret: undefined
         };
         setUserData(updatedUserData);
-        // In a real implementation, this would update the user data in your backend
       }
     } catch (error) {
       console.error('Error disabling 2FA:', error);
@@ -262,7 +272,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verify2FA,
       skip2FA,
       enable2FA,
-      disable2FA
+      disable2FA,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>

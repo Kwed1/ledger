@@ -16,7 +16,7 @@ import { ledgerService } from '../services/ledger'
 
 const AuthPage = () => {
 	const navigate = useNavigate()
-	const { signIn, isAuthenticated, userData } = useAuth()
+	const { signIn, isAuthenticated, userData, verify2FA, skip2FA } = useAuth()
 	const [formData, setFormData] = useState({
 		nodeId: '',
 		password: '',

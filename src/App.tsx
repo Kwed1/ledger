@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
 	Navigate,
 	Route,
@@ -6,14 +7,49 @@ import {
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AuthPage from './pages/AuthPage'
-import { CryptoWalletInterface } from './pages/CryptoWalletInterface'
+import DashboardPage from './pages/DashboardPage'
 import LedgerConnectionPage from './pages/LedgerConnectionPage'
 import WalletConnectionPage from './pages/WalletConnectionPage'
-import DashboardPage from './pages/DashboardPage'
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 	const { isAuthenticated } = useAuth()
-	return isAuthenticated ? <>{children}</> : <Navigate to='/auth' />
+	const [isLoading, setIsLoading] = useState(true)
+	const [isTokenValid, setIsTokenValid] = useState(false)
+
+	useEffect(() => {
+		const checkToken = () => {
+			const session = localStorage.getItem('authSession')
+			if (session) {
+				try {
+					const { timestamp } = JSON.parse(session)
+					const now = new Date().getTime()
+					// Check if token is less than 10 minutes old
+					if (now - timestamp < 10 * 60 * 1000) { // 10 minutes
+						setIsTokenValid(true)
+					} else {
+						// Token expired
+						localStorage.removeItem('authSession')
+						setIsTokenValid(false)
+					}
+				} catch (error) {
+					console.error('Error checking token:', error)
+					localStorage.removeItem('authSession')
+					setIsTokenValid(false)
+				}
+			} else {
+				setIsTokenValid(false)
+			}
+			setIsLoading(false)
+		}
+
+		checkToken()
+	}, [])
+
+	if (isLoading) {
+		return null // or a loading spinner
+	}
+
+	return isAuthenticated && isTokenValid ? <>{children}</> : <Navigate to='/auth' />
 }
 
 const App = () => {
