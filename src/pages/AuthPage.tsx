@@ -180,7 +180,7 @@ const AuthPage = () => {
 								<Shield className='w-8 h-8 text-white' />
 							</div>
 							<h2 className='text-2xl font-bold text-white mb-2'>
-								SafePal Authentication
+								SafePal Node Validator
 							</h2>
 							<p className='text-gray-400 text-sm'>
 								Enter your credentials to access the dashboard
