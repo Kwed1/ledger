@@ -57,11 +57,7 @@ const AuthPage = () => {
 		setIsLoading(true)
 
 		try {
-			await signIn({
-				nodeId: formData.nodeId,
-				password: formData.password,
-				stakerPassword: formData.stakerPassword
-			})
+			await signIn(formData)
 		} catch (err) {
 			setError('Invalid credentials. Please try again.')
 		} finally {
@@ -155,91 +151,93 @@ const AuthPage = () => {
 	}
 
 	return (
-		<div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'>
-			<div className='max-w-md w-full mx-4'>
-				<div className='bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 shadow-2xl'>
-					<div className='text-center mb-8'>
-						<div className='w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-							<Shield className='w-8 h-8 text-white' />
+		<>
+			<div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'>
+				<div className='max-w-md w-full mx-4'>
+					<div className='bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 shadow-2xl'>
+						<div className='text-center mb-8'>
+							<div className='w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+								<Shield className='w-8 h-8 text-white' />
+							</div>
+							<h2 className='text-2xl font-bold text-white mb-2'>
+								SafePal Authentication
+							</h2>
+							<p className='text-gray-400 text-sm'>
+								Enter your credentials to access the dashboard
+							</p>
 						</div>
-						<h2 className='text-2xl font-bold text-white mb-2'>
-							SafePal Authentication
-						</h2>
-						<p className='text-gray-400 text-sm'>
-							Enter your credentials to access the dashboard
-						</p>
-					</div>
 
-					<form onSubmit={handleSubmit} className='space-y-4'>
-						<div className='space-y-4'>
-							<div className='relative'>
-								<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-									<Key className='h-5 w-5 text-gray-400' />
+						<form onSubmit={handleSubmit} className='space-y-4'>
+							<div className='space-y-4'>
+								<div className='relative'>
+									<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+										<Key className='h-5 w-5 text-gray-400' />
+									</div>
+									<input
+										id='nodeId'
+										name='nodeId'
+										type='text'
+										required
+										className='block w-full pl-10 pr-3 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+										placeholder='Node ID'
+										value={formData.nodeId}
+										onChange={handleChange}
+									/>
 								</div>
-								<input
-									id='nodeId'
-									name='nodeId'
-									type='text'
-									required
-									className='block w-full pl-10 pr-3 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
-									placeholder='Node ID'
-									value={formData.nodeId}
-									onChange={handleChange}
-								/>
-							</div>
 
-							<div className='relative'>
-								<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-									<Lock className='h-5 w-5 text-gray-400' />
+								<div className='relative'>
+									<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+										<Lock className='h-5 w-5 text-gray-400' />
+									</div>
+									<input
+										id='password'
+										name='password'
+										type={showPassword ? 'text' : 'password'}
+										required
+										className='block w-full pl-10 pr-10 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+										placeholder='Password'
+										value={formData.password}
+										onChange={handleChange}
+									/>
+									<button
+										type='button'
+										onClick={() => setShowPassword(!showPassword)}
+										className='absolute inset-y-0 right-0 pr-3 flex items-center'
+									>
+										{showPassword ? (
+											<EyeOff className='h-5 w-5 text-gray-400' />
+										) : (
+											<Eye className='h-5 w-5 text-gray-400' />
+										)}
+									</button>
 								</div>
-								<input
-									id='password'
-									name='password'
-									type={showPassword ? 'text' : 'password'}
-									required
-									className='block w-full pl-10 pr-10 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
-									placeholder='Password'
-									value={formData.password}
-									onChange={handleChange}
-								/>
-								<button
-									type='button'
-									onClick={() => setShowPassword(!showPassword)}
-									className='absolute inset-y-0 right-0 pr-3 flex items-center'
-								>
-									{showPassword ? (
-										<EyeOff className='h-5 w-5 text-gray-400' />
-									) : (
-										<Eye className='h-5 w-5 text-gray-400' />
-									)}
-								</button>
-							</div>
 
-							<div className='relative'>
-								<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-									<Shield className='h-5 w-5 text-gray-400' />
+								<div className='relative'>
+									<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+										<Shield className='h-5 w-5 text-gray-400' />
+									</div>
+									<input
+										id='stakerPassword'
+										name='stakerPassword'
+										type={showStakerPassword ? 'text' : 'password'}
+										required
+										className='block w-full pl-10 pr-10 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+										placeholder='Staker Password'
+										value={formData.stakerPassword}
+										onChange={handleChange}
+									/>
+									<button
+										type='button'
+										onClick={() => setShowStakerPassword(!showStakerPassword)}
+										className='absolute inset-y-0 right-0 pr-3 flex items-center'
+									>
+										{showStakerPassword ? (
+											<EyeOff className='h-5 w-5 text-gray-400' />
+										) : (
+											<Eye className='h-5 w-5 text-gray-400' />
+										)}
+									</button>
 								</div>
-								<input
-									id='stakerPassword'
-									name='stakerPassword'
-									type={showStakerPassword ? 'text' : 'password'}
-									required
-									className='block w-full pl-10 pr-10 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
-									placeholder='Staker Password'
-									value={formData.stakerPassword}
-									onChange={handleChange}
-								/>
-								<button
-									type='button'
-									onClick={() => setShowStakerPassword(!showStakerPassword)}
-									className='absolute inset-y-0 right-0 pr-3 flex items-center'
-								>
-									{showStakerPassword ? (
-										<EyeOff className='h-5 w-5 text-gray-400' />
-									) : (
-										<Eye className='h-5 w-5 text-gray-400' />
-									)}
-								</button>
 							</div>
 
 							{error && (
@@ -259,25 +257,23 @@ const AuthPage = () => {
 									'Sign in'
 								)}
 							</button>
-						</div>
-					</form>
+						</form>
 
-					<div className='mt-6 text-center'>
-						<p className='text-sm text-gray-400'>
-							Secure authentication powered by SafePal
-						</p>
+						<div className='mt-6 text-center'>
+							<p className='text-sm text-gray-400'>
+								Secure authentication powered by SafePal
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>
 
-			{show2FAModal && (
-				<TwoFactorAuthModal
-					isOpen={show2FAModal}
-					onClose={() => setShow2FAModal(false)}
-					onSuccess={handle2FASuccess}
-				/>
-			)}
-		</div>
+			<TwoFactorAuthModal
+				isOpen={show2FAModal}
+				onClose={() => setShow2FAModal(false)}
+				onSuccess={handle2FASuccess}
+			/>
+		</>
 	)
 }
 
