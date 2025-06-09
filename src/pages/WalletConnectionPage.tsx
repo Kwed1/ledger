@@ -15,10 +15,14 @@ import {
   Usb,
   Wallet,
   Wifi,
-  Zap
+  Zap,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ledgerService } from '../services/ledger';
+import TransportWebHID from "@ledgerhq/hw-transport-webhid";
+import Eth from "@ledgerhq/hw-app-eth";
+import Web3 from 'web3';
 
 const WalletConnectionPage = () => {
   const navigate = useNavigate();
@@ -28,72 +32,40 @@ const WalletConnectionPage = () => {
   const [error, setError] = useState('');
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [connectionStep, setConnectionStep] = useState<string>('');
-  const [isBluetoothAvailable, setIsBluetoothAvailable] = useState<boolean | null>(null);
-
-  const connectionMethods = [
-    {
-      id: 'bluetooth',
-      name: 'Bluetooth',
-      description: 'Connect via Bluetooth',
-      icon: Bluetooth,
-      available: true
-    },
-    {
-      id: 'usb',
-      name: 'USB',
-      description: 'Connect via USB cable',
-      icon: Usb,
-      available: false
-    },
-    {
-      id: 'wifi',
-      name: 'Wi-Fi',
-      description: 'Connect via Wi-Fi network',
-      icon: Wifi,
-      available: false
-    }
-  ];
-
-  const checkBluetoothAvailability = async () => {
-    try {
-      if (!navigator.bluetooth) {
-        setIsBluetoothAvailable(false);
-        setError('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
-        return;
-      }
-
-      const isAvailable = await navigator.bluetooth.getAvailability();
-      setIsBluetoothAvailable(isAvailable);
-      if (!isAvailable) {
-        setError('Bluetooth is not available. Please enable Bluetooth in your system settings.');
-      } else {
-        setError('');
-      }
-    } catch (err) {
-      console.error('Bluetooth availability check error:', err);
-      setIsBluetoothAvailable(false);
-      setError('Failed to check Bluetooth availability. Please make sure Bluetooth is enabled.');
-    }
-  };
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const connectLedger = async () => {
     try {
       setConnectionStatus('searching');
       setError('');
-      setConnectionStep('Checking Bluetooth availability...');
+      setConnectionStep('Connecting to Ledger...');
 
-      if (!navigator.bluetooth) {
-        throw new Error('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
+      // Check if WebHID is supported
+      if (!navigator.hid) {
+        throw new Error('WebHID is not supported in your browser. Please use Chrome or Edge.');
       }
 
-      const isAvailable = await navigator.bluetooth.getAvailability();
-      if (!isAvailable) {
-        throw new Error('Bluetooth is not available. Please enable Bluetooth in your system settings.');
+      // Request HID device
+      setConnectionStep('Requesting device access...');
+      const devices = await navigator.hid.requestDevice({
+        filters: [{ vendorId: 0x2c97 }] // Ledger vendor ID
+      });
+
+      if (devices.length === 0) {
+        throw new Error('No Ledger device selected. Please select your device and try again.');
       }
 
-      setConnectionStep('Requesting Bluetooth device...');
+      // Connect to Ledger via WebHID
+      setConnectionStep('Establishing connection...');
+      const transport = await TransportWebHID.create();
+      const ethApp = new Eth(transport);
+
+      setConnectionStep('Getting Ethereum address...');
       setConnectionStatus('connecting');
-      await ledgerService.connect();
+
+      // Get Ethereum address
+      const path = "44'/60'/0'/0/0";
+      const { address } = await ethApp.getAddress(path);
 
       setConnectionStep('Device connected successfully');
       setConnectionStatus('connected');
@@ -106,9 +78,16 @@ const WalletConnectionPage = () => {
       console.error('Connection error:', err);
       setConnectionStatus('error');
       if (err instanceof Error) {
-        setError(err.message);
+        if (err.message.includes('Access denied') || err.message.includes('User cancelled')) {
+          setError('Access to Ledger device was denied. Please make sure to:');
+          setShowPermissionDialog(true);
+        } else if (err.message.includes('WebHID is not supported')) {
+          setError('Your browser does not support WebHID. Please use Chrome or Edge.');
+        } else {
+          setError(err.message);
+        }
       } else {
-        setError('Failed to connect to Ledger. Please make sure Bluetooth is enabled and try again.');
+        setError('Failed to connect to Ledger. Please make sure your device is connected and unlocked.');
       }
       setConnectionStep('');
     }
@@ -189,39 +168,65 @@ const WalletConnectionPage = () => {
         <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/30 p-8">
           <h2 className="text-2xl font-semibold text-center mb-8">Connection Methods</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {connectionMethods.map((method) => (
-              <div
-                key={method.id}
-                onClick={() => method.available && handleWalletSelect(method.id)}
-                className={`p-6 rounded-xl border ${
-                  method.available
-                    ? 'border-blue-500/50 cursor-pointer hover:border-blue-500/70'
-                    : 'border-gray-700/30 cursor-not-allowed opacity-50'
-                } transition-all`}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    method.available
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600'
-                      : 'bg-gray-700'
-                  }`}>
-                    <method.icon className={`w-6 h-6 ${
-                      method.available ? 'text-white' : 'text-gray-500'
-                    }`} />
-                  </div>
-                  <div>
-                    <h3 className={`font-medium ${
-                      method.available ? 'text-white' : 'text-gray-500'
-                    }`}>{method.name}</h3>
-                    <p className={`text-sm ${
-                      method.available ? 'text-gray-400' : 'text-gray-500'
-                    }`}>{method.description}</p>
-                  </div>
+            <div
+              onClick={() => handleWalletSelect('ledger')}
+              className="p-6 rounded-xl border border-blue-500/50 cursor-pointer hover:border-blue-500/70 transition-all"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
+                  <Usb className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">USB</h3>
+                  <p className="text-sm text-gray-400">Connect via USB cable</p>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="p-6 rounded-xl border border-gray-700/30 cursor-not-allowed opacity-50">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-700">
+                  <Bluetooth className="w-6 h-6 text-gray-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-500">Bluetooth</h3>
+                  <p className="text-sm text-gray-500">Connect via Bluetooth</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-xl border border-gray-700/30 cursor-not-allowed opacity-50">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-700">
+                  <Wifi className="w-6 h-6 text-gray-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-500">Wi-Fi</h3>
+                  <p className="text-sm text-gray-500">Connect via Wi-Fi network</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {error && (
+          <div className="mt-8 bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-xl p-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium mb-2">{error}</p>
+                {showPermissionDialog && (
+                  <ul className="list-disc list-inside space-y-1 text-red-400/80">
+                    <li>Select your Ledger device in the browser dialog</li>
+                    <li>Make sure your Ledger is unlocked</li>
+                    <li>Open the Ethereum app on your Ledger</li>
+                    <li>Click "Allow" on your Ledger when prompted</li>
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* QR Code Option */}
         <div className="mt-8 text-center">
