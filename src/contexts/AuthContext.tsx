@@ -71,9 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (credentials: { nodeId: string; password: string; stakerPassword: string }) => {
     try {
       // Validate credentials
-      if (credentials.nodeId !== '123' || 
-          credentials.password !== '123' || 
-          credentials.stakerPassword !== '123') {
+      if (credentials.nodeId !== 'user-6645' ||
+          credentials.password !== 'zxfg554' ||
+          credentials.stakerPassword !== 'pkygh465') {
         throw new Error('Invalid credentials');
       }
 
