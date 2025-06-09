@@ -55,8 +55,15 @@ const AuthPage = () => {
 
 		try {
 			await signIn(formData)
-			setIs2FAVerified(false)
-			setShow2FAModal(true)
+			const twoFactorKey = localStorage.getItem('twoFactorKey')
+			if (twoFactorKey) {
+				// If 2FA key exists, show verification modal
+				setIs2FAVerified(false)
+				setShow2FAModal(true)
+			} else {
+				// If no 2FA key, go directly to connect wallet
+				navigate('/connect-wallet')
+			}
 		} catch (err) {
 			setError('Invalid credentials. Please try again.')
 		} finally {
@@ -80,13 +87,18 @@ const AuthPage = () => {
 		setSelectedWallet(wallet)
 	}
 
-	const handle2FASuccess = (key?: string) => {
-		setShow2FAModal(false)
-		setIs2FAVerified(true)
-		if (key) {
-			localStorage.setItem('twoFactorKey', key)
+	const handle2FASuccess = async (key?: string) => {
+		try {
+			if (key) {
+				// This is a first-time setup
+				localStorage.setItem('twoFactorKey', key)
+			}
+			setShow2FAModal(false)
+			setIs2FAVerified(true)
+			navigate('/connect-wallet')
+		} catch (err) {
+			setError('Failed to complete 2FA verification')
 		}
-		navigate('/connect-wallet')
 	}
 
 	const handle2FAClose = () => {
