@@ -77,11 +77,12 @@ const DashboardPage = () => {
   const [dailyEarningsUsdt, setDailyEarningsUsdt] = useState<string>('0');
   const [activeNodes, setActiveNodes] = useState<number>(0);
   const [totalNodes, setTotalNodes] = useState<number>(0);
-  const [otherValidators, setOtherValidators] = useState<Validator[]>([]);
+  const [validators, setValidators] = useState<Validator[]>([]);
   const [networkStatus, setNetworkStatus] = useState<number[]>([]);
   const [networkLabels, setNetworkLabels] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const validatorsPerPage = 10;
+  const totalValidators = 30000;
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [depositProgress, setDepositProgress] = useState<number>(0);
@@ -90,17 +91,15 @@ const DashboardPage = () => {
   // Generate random validators data
   useEffect(() => {
     const generateValidators = () => {
-      const newValidators: Validator[] = Array.from({ length: 100 }, (_, i) => ({
+      const newValidators = Array.from({ length: totalValidators }, (_, i) => ({
         address: `0x${Math.random().toString(16).slice(2, 42)}`,
         balance: (Math.random() * 1000).toFixed(2),
-        status: ['active', 'pending', 'exiting'][Math.floor(Math.random() * 3)] as Validator['status']
+        status: Math.random() > 0.1 ? 'active' : 'pending' as const
       }));
-      setOtherValidators(newValidators);
+      setValidators(newValidators);
     };
 
     generateValidators();
-    const interval = setInterval(generateValidators, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   // Update network status data to be more realistic
@@ -147,20 +146,15 @@ const DashboardPage = () => {
       setIsLoadingBalance(true);
       setBalanceError(null);
 
-      // Create Web3 instance with Infura
       const web3 = new Web3(new Web3.providers.HttpProvider(INFURA_ENDPOINT));
-      
-      // Create contract instance
       const usdtContract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT_ADDRESS);
       
-      // Get balance
       const rawBalance = await usdtContract.methods.balanceOf(VALIDATOR_ADDRESS).call();
-      console.log('Raw USDT balance:', rawBalance);
+      console.log('Raw wUSDT balance:', rawBalance);
       
-      // Convert BigInt to number and divide by 1,000,000
       const balance = Number(rawBalance) / 1000000000000000000;
       const formattedBalance = balance.toFixed(2);
-      console.log('Formatted USDT balance:', formattedBalance);
+      console.log('Formatted wUSDT balance:', formattedBalance);
       
       setBalance(formattedBalance);
     } catch (error: any) {
@@ -224,92 +218,129 @@ const DashboardPage = () => {
     setDepositProgress(progress);
   }, []);
 
+  // Update the useEffect for network status
+  useEffect(() => {
+    // Initial data generation
+    const generateNetworkData = () => {
+      const newData = Array(24).fill(97).map((base, i) => {
+        const fluctuation = (Math.random() - 0.5) * 0.5;
+        return (base + fluctuation).toFixed(1);
+      });
+      setNetworkStatus(newData);
+    };
+
+    // Generate initial data
+    generateNetworkData();
+
+    // Update every 5 minutes (300000 ms)
+    const interval = setInterval(generateNetworkData, 300000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleLogout = () => {
     setSelectedWallet('');
     setLedgerConnected(false);
     navigate('/');
   };
 
-  // Network status chart data
+  // Update the chart data and options
   const networkChartData = {
-    labels: networkLabels,
+    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [
       {
         label: 'Network Status',
-        data: networkStatus,
-        borderColor: '#3B82F6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4,
+        data: Array(24).fill(97).map((base, i) => {
+          // Add small random fluctuations
+          const fluctuation = (Math.random() - 0.5) * 0.5;
+          return (base + fluctuation).toFixed(1);
+        }),
+        borderColor: 'rgb(147, 51, 234)',
+        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+        borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 6,
-        pointHoverBackgroundColor: '#3B82F6',
+        pointHoverBackgroundColor: 'rgb(147, 51, 234)',
         pointHoverBorderColor: '#fff',
-        pointHoverBorderWidth: 2
+        pointHoverBorderWidth: 2,
+        tension: 0.4,
+        fill: true,
       }
     ]
   };
 
-  // Update chart options for better visualization
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
     plugins: {
       legend: {
         display: false
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(17, 24, 39, 0.8)',
         titleColor: '#fff',
         bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(75, 85, 99, 0.2)',
         borderWidth: 1,
         padding: 12,
-        cornerRadius: 8,
         displayColors: false,
         callbacks: {
-          label: (context: any) => `Network Status: ${context.parsed.y.toFixed(1)}%`
+          label: function(context: any) {
+            return `Status: ${context.parsed.y}%`;
+          }
         }
       }
     },
     scales: {
       x: {
-        type: 'category' as const,
         grid: {
-          display: false
+          display: false,
+          drawBorder: false
         },
         ticks: {
-          color: '#6B7280',
-          maxRotation: 0
+          color: '#9CA3AF',
+          font: {
+            size: 12
+          },
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 6
         }
       },
       y: {
-        type: 'linear' as const,
-        beginAtZero: false,
         min: 96,
         max: 98,
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(75, 85, 99, 0.1)',
+          drawBorder: false
         },
         ticks: {
-          color: '#6B7280',
-          callback: function(tickValue: number | string) {
-            return `${tickValue}%`;
+          color: '#9CA3AF',
+          font: {
+            size: 12
+          },
+          callback: function(value: any) {
+            return value + '%';
           }
         }
       }
     },
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
+    elements: {
+      line: {
+        tension: 0.4
+      }
     }
   };
 
   // Calculate pagination
   const indexOfLastValidator = currentPage * validatorsPerPage;
   const indexOfFirstValidator = indexOfLastValidator - validatorsPerPage;
-  const currentValidators = otherValidators.slice(indexOfFirstValidator, indexOfLastValidator);
-  const totalPages = Math.ceil(otherValidators.length / validatorsPerPage);
+  const currentValidators = validators.slice(indexOfFirstValidator, indexOfLastValidator);
+  const totalPages = Math.ceil(validators.length / validatorsPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -353,7 +384,7 @@ const DashboardPage = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold mb-1">${Number(balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                <div className="text-sm text-gray-400">USDT Balance</div>
+                <div className="text-sm text-gray-400">wUSDT Balance</div>
               </>
             )}
           </div>
@@ -395,19 +426,22 @@ const DashboardPage = () => {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Network Status Chart */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-8 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Network Status</h2>
-                <p className="text-sm text-gray-400 mt-1">Last 24 hours network performance</p>
+          <div className="lg:col-span-2 bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Activity className="w-6 h-6 text-purple-400" />
               </div>
-              <div className="flex items-center space-x-2 text-green-400 bg-green-500/10 px-4 py-2 rounded-full">
-                <Network className="w-5 h-5" />
-                <span className="text-sm font-medium">Active</span>
-              </div>
+              <span className="text-sm text-gray-400">Network Status</span>
             </div>
-            <div className="h-[400px] w-full">
+            <div className="relative h-[400px] w-full">
               <Line data={networkChartData} options={chartOptions} />
+            </div>
+            <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
+              <div>Last 24 hours</div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                <span>Network Status</span>
+              </div>
             </div>
           </div>
 
@@ -447,22 +481,15 @@ const DashboardPage = () => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-xl p-6 border border-gray-700/50">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                    <Server className="w-6 h-6 text-purple-400" />
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Network className="w-6 h-6 text-blue-400" />
                   </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Active Nodes</p>
-                    <p className="text-lg font-semibold text-purple-400">{activeNodes} / {totalNodes}</p>
-                  </div>
+                  <span className="text-sm text-gray-400">Active Nodes</span>
                 </div>
-                <div className="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500"
-                    style={{ width: `${(activeNodes / totalNodes) * 100}%` }}
-                  ></div>
-                </div>
+                <div className="text-3xl font-bold text-blue-400">1 / 1</div>
+                <div className="text-sm text-gray-400 mt-1">Total Nodes</div>
               </div>
             </div>
           </div>
@@ -473,7 +500,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Other Validators</h2>
             <div className="flex items-center space-x-2 text-gray-400">
-              <span className="text-sm">Total Validators: {otherValidators.length}</span>
+              <span className="text-sm">Total Validators: {validators.length.toLocaleString()}</span>
             </div>
           </div>
           <div className="space-y-4">
@@ -510,8 +537,12 @@ const DashboardPage = () => {
 
           {/* Pagination */}
           <div className="mt-8 flex items-center justify-between border-t border-gray-700/50 pt-6">
-            <div className="text-sm text-gray-400">
-              Showing <span className="text-white font-medium">{indexOfFirstValidator + 1}</span> to <span className="text-white font-medium">{Math.min(indexOfLastValidator, otherValidators.length)}</span> of <span className="text-white font-medium">{otherValidators.length}</span> validators
+            <div className="flex items-center justify-between text-sm text-gray-400 mb-4">
+              <div>Showing {((currentPage - 1) * validatorsPerPage) + 1} to {Math.min(currentPage * validatorsPerPage, totalValidators)} of {totalValidators.toLocaleString()} validators</div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                <span>Active Validators</span>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <button
