@@ -1,95 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bluetooth, Lock, Shield, HardDrive } from 'lucide-react';
+import { HardDrive, Lock, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ledgerService } from '../services/ledger';
-
-// Add Web Bluetooth API type definitions
-interface BluetoothDevice {
-  id: string;
-  name?: string;
-  gatt?: {
-    connect(): Promise<BluetoothRemoteGATTServer>;
-  };
-}
-
-interface BluetoothRemoteGATTServer {
-  connected: boolean;
-  device: BluetoothDevice;
-  getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
-}
-
-interface BluetoothRemoteGATTService {
-  getCharacteristic(characteristic: string): Promise<BluetoothRemoteGATTCharacteristic>;
-}
-
-interface BluetoothRemoteGATTCharacteristic {
-  readValue(): Promise<DataView>;
-  writeValue(value: BufferSource): Promise<void>;
-}
-
-declare global {
-  interface Navigator {
-    bluetooth: {
-      getAvailability(): Promise<boolean>;
-      requestDevice(options: { acceptAllDevices?: boolean; filters?: Array<{ services?: string[] }> }): Promise<BluetoothDevice>;
-    };
-  }
-}
 
 const LedgerConnectionPage = () => {
   const navigate = useNavigate();
   const { setSelectedWallet, setLedgerConnected } = useAuth();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'searching'>('searching');
   const [error, setError] = useState('');
-  const [deviceName, setDeviceName] = useState<string | null>(null);
   const [connectionStep, setConnectionStep] = useState<string>('');
-  const [isBluetoothAvailable, setIsBluetoothAvailable] = useState<boolean | null>(null);
   const [ledgerAddress, setLedgerAddress] = useState<string>('');
-
-  const checkBluetoothAvailability = async () => {
-    try {
-      if (!('bluetooth' in navigator)) {
-        setIsBluetoothAvailable(false);
-        setError('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
-        return;
-      }
-
-      const isAvailable = await (navigator as any).bluetooth.getAvailability();
-      setIsBluetoothAvailable(isAvailable);
-      if (!isAvailable) {
-        setError('Bluetooth is not available. Please enable Bluetooth in your system settings.');
-      } else {
-        setError('');
-      }
-    } catch (err) {
-      console.error('Bluetooth availability check error:', err);
-      setIsBluetoothAvailable(false);
-      setError('Failed to check Bluetooth availability. Please make sure Bluetooth is enabled.');
-    }
-  };
-
-  useEffect(() => {
-    checkBluetoothAvailability();
-  }, []);
 
   const connectLedger = async () => {
     try {
       setConnectionStatus('searching');
       setError('');
-      setConnectionStep('Checking Bluetooth availability...');
-
-      if (!navigator.bluetooth) {
-        throw new Error('Web Bluetooth API is not available in your browser. Please use Chrome or Edge.');
-      }
-
-      const isAvailable = await navigator.bluetooth.getAvailability();
-      if (!isAvailable) {
-        throw new Error('Bluetooth is not available. Please enable Bluetooth in your system settings.');
-      }
-
-      setConnectionStep('Requesting Bluetooth device...');
-      setConnectionStatus('connecting');
+      setConnectionStep('Connecting to Ledger...');
       
       // Connect to Ledger device
       await ledgerService.connect();
@@ -99,11 +26,10 @@ const LedgerConnectionPage = () => {
       setLedgerAddress(address);
       
       // Authenticate with backend
-      await ledgerService.authenticateWithBackend();
+      await ledgerService.authenticateWithBackend(address);
 
       setConnectionStep('Device connected successfully');
       setConnectionStatus('connected');
-      setDeviceName('Ledger Device');
       
       setSelectedWallet('ledger');
       setLedgerConnected(true);
@@ -114,7 +40,7 @@ const LedgerConnectionPage = () => {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Failed to connect to Ledger. Please make sure Bluetooth is enabled and try again.');
+        setError('Failed to connect to Ledger. Please make sure your device is connected and unlocked.');
       }
       setConnectionStep('');
     }
@@ -136,7 +62,7 @@ const LedgerConnectionPage = () => {
             </h2>
             <p className="text-gray-400 text-sm">
               {connectionStep || (
-                connectionStatus === 'searching' ? 'Please make sure your Ledger device is turned on and Bluetooth is enabled' :
+                connectionStatus === 'searching' ? 'Please make sure your Ledger device is connected via USB' :
                 connectionStatus === 'connecting' ? 'Establishing secure connection...' :
                 connectionStatus === 'connected' ? 'Successfully connected to your Ledger device' :
                 'Please check your device and try again'
@@ -145,40 +71,6 @@ const LedgerConnectionPage = () => {
           </div>
 
           <div className="space-y-6">
-            {/* Bluetooth Status */}
-            <div className="bg-gray-700/30 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-300">Bluetooth Status</span>
-                <div className={`flex items-center ${
-                  isBluetoothAvailable === null ? 'text-gray-400' :
-                  isBluetoothAvailable ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {isBluetoothAvailable === null ? (
-                    <>
-                      <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-                      <span>Checking...</span>
-                    </>
-                  ) : isBluetoothAvailable ? (
-                    <>
-                      <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                      <span>Available</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
-                      <span>Not Available</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={checkBluetoothAvailability}
-                className="w-full py-2 px-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium transition-all"
-              >
-                Check Bluetooth Status
-              </button>
-            </div>
-
             {/* Connection Status */}
             <div className="bg-gray-700/30 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
@@ -227,9 +119,9 @@ const LedgerConnectionPage = () => {
                     connectionStatus === 'connected' ? 'bg-green-400/20' :
                     'bg-gray-400/20'
                   }`}>
-                    <Bluetooth className="w-3 h-3" />
+                    <HardDrive className="w-3 h-3" />
                   </div>
-                  <span>Bluetooth Connection</span>
+                  <span>Device Connection</span>
                 </div>
 
                 <div className={`flex items-center space-x-3 ${
@@ -301,15 +193,15 @@ const LedgerConnectionPage = () => {
               <ul className="text-gray-400 text-sm space-y-2">
                 <li className="flex items-start">
                   <span className="text-blue-400 mr-2">•</span>
-                  Make sure Bluetooth is enabled in your macOS System Preferences
+                  Connect your Ledger device via USB cable
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-400 mr-2">•</span>
-                  Grant Bluetooth permission to your browser when prompted
+                  Make sure your Ledger device is unlocked
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-400 mr-2">•</span>
-                  Keep your Ledger device unlocked and nearby
+                  Open the Ethereum app on your Ledger
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-400 mr-2">•</span>
@@ -321,9 +213,9 @@ const LedgerConnectionPage = () => {
             {/* Connect Button */}
             <button
               onClick={connectLedger}
-              disabled={connectionStatus === 'connecting' || connectionStatus === 'searching' || !isBluetoothAvailable}
+              disabled={connectionStatus === 'connecting' || connectionStatus === 'searching'}
               className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
-                connectionStatus === 'connecting' || connectionStatus === 'searching' || !isBluetoothAvailable
+                connectionStatus === 'connecting' || connectionStatus === 'searching'
                   ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
                   : connectionStatus === 'error'
                   ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400'

@@ -103,7 +103,7 @@ const AuthPage = () => {
               <div className="w-12 h-12 bg-gray-700/50 rounded-full flex items-center justify-center mb-3">
                 <Shield className="w-6 h-6 text-gray-400" />
               </div>
-              <span className="text-gray-400 font-medium">SafePal</span>
+              <span className="text-gray-400 font-medium">SafePaиl</span>
               <span className="text-xs text-gray-500 mt-1">Coming Soon</span>
             </button>
             
