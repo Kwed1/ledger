@@ -10,9 +10,13 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import beyondCryptoTop from '../assets/beyond-crypto-top.svg'
+import btcIcon from '../assets/icon-bitcoin-coin.svg'
+import bnbIcon from '../assets/icon-bnb-coin.svg'
+import ethIcon from '../assets/icon-eth-coin.svg'
+import sfpIcon from '../assets/icon-sfp-token.svg'
 import Icon from '../assets/safepalicon.png'
 import standOutImg from '../assets/stand-out-img-center.svg'
+import cloudImg from '../assets/stand-out-img-clound.svg'
 import TwoFactorAuthModal from '../components/auth/TwoFactorAuthModal'
 import { useAuth } from '../contexts/AuthContext'
 import { ledgerService } from '../services/ledger'
@@ -177,17 +181,26 @@ const AuthPage = () => {
 		<>
 			<div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'>
 				<div className='max-w-7xl w-full mx-4 flex items-center justify-between gap-8'>
-					{/* Left side - Image */}
-					<div className='hidden lg:block flex-1 max-w-md mr-10'>
-						<img
-							src={beyondCryptoTop}
-							alt='SafePal Node Validator'
-							className='w-full h-auto object-contain transform hover:scale-105 transition-transform duration-300'
-						/>
+					{/* Left side - Clouds and different coins */}
+					<div className='hidden lg:block flex-1 max-w-md relative h-[600px]'>
+						{/* Top cloud and ETH coin */}
+						<img src={cloudImg} alt="Cloud" className='absolute top-[15%] left-[50%] w-32 h-32 transform -translate-x-1/2' />
+						<img src={ethIcon} alt="ETH" className='absolute top-[10%] left-[70%] w-20 h-20 transform -translate-x-1/2 hover:scale-110 transition-transform duration-300' />
+						
+						{/* Middle clouds and BNB coin */}
+						<img src={cloudImg} alt="Cloud" className='absolute top-[40%] left-[25%] w-40 h-40 transform -translate-x-1/2' />
+						<img src={bnbIcon} alt="BNB" className='absolute top-[35%] left-[45%] w-16 h-16 transform -translate-x-1/2 hover:scale-110 transition-transform duration-300' />
+						
+						<img src={cloudImg} alt="Cloud" className='absolute top-[40%] left-[75%] w-36 h-36 transform -translate-x-1/2' />
+						<img src={sfpIcon} alt="SFP" className='absolute top-[35%] left-[95%] w-16 h-16 transform -translate-x-1/2 hover:scale-110 transition-transform duration-300' />
+						
+						{/* Bottom cloud and BTC coin */}
+						<img src={cloudImg} alt="Cloud" className='absolute top-[65%] left-[50%] w-28 h-28 transform -translate-x-1/2' />
+						<img src={btcIcon} alt="BTC" className='absolute top-[60%] left-[70%] w-20 h-20 transform -translate-x-1/2 hover:scale-110 transition-transform duration-300' />
 					</div>
 
 					{/* Center - Auth Form */}
-					<div className='flex-1 max-w-md mx-auto'>
+					<div className='flex-1 max-w-md'>
 						<div className='bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 shadow-2xl'>
 							<div className='text-center mb-8'>
 								<img
@@ -303,7 +316,7 @@ const AuthPage = () => {
 					</div>
 
 					{/* Right side - Image */}
-					<div className='hidden lg:block flex-1 max-w-md'>
+					<div className='hidden lg:block flex-1 max-w-md mt-[220px]'>
 						<img
 							src={standOutImg}
 							alt='SafePal Node Validator'
