@@ -77,9 +77,7 @@ const App = () => {
 					<Route
 						path='/dashboard'
 						element={
-							<PrivateRoute>
 								<DashboardPage />
-							</PrivateRoute>
 						}
 					/>
 					<Route path='*' element={<Navigate to='/auth' />} />

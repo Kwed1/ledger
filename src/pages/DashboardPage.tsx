@@ -1,28 +1,28 @@
 import {
-  CategoryScale,
-  ChartData,
-  Chart as ChartJS,
-  Filler,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip
+	CategoryScale,
+	ChartData,
+	Chart as ChartJS,
+	Filler,
+	Legend,
+	LinearScale,
+	LineElement,
+	PointElement,
+	Title,
+	Tooltip
 } from 'chart.js'
 import {
-  Activity,
-  ArrowUpRight,
-  Calendar,
-  ChevronRight,
-  Info,
-  Loader2,
-  LogOut,
-  Network,
-  Percent,
-  Shield,
-  Users,
-  Wallet,
+	Activity,
+	ArrowUpRight,
+	Calendar,
+	ChevronRight,
+	Info,
+	Loader2,
+	LogOut,
+	Network,
+	Percent,
+	Shield,
+	Users,
+	Wallet,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Line } from 'react-chartjs-2'
@@ -364,7 +364,7 @@ const DashboardPage = () => {
 				{/* Left side images */}
 				<div className='absolute left-0 top-0 h-full w-1/4 flex flex-col items-center justify-between py-20'>
 					<div className='relative w-full group'>
-						<div className='absolute inset-0 bg-gradient-to-r from-gray-900/70 via-gray-900/30 to-transparent backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-[4px]'></div>
+			
 						<img
 							src={heroHardwareX1}
 							alt=''
@@ -372,7 +372,7 @@ const DashboardPage = () => {
 						/>
 					</div>
 					<div className='relative w-full group'>
-						<div className='absolute inset-0 bg-gradient-to-r from-gray-900/70 via-gray-900/30 to-transparent backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-[4px]'></div>
+				
 						<img
 							src={heroExtension}
 							alt=''
@@ -384,7 +384,7 @@ const DashboardPage = () => {
 				{/* Right side images */}
 				<div className='absolute right-0 top-0 h-full w-1/4 flex flex-col items-center justify-between py-20'>
 					<div className='relative w-full group'>
-						<div className='absolute inset-0 bg-gradient-to-l from-gray-900/70 via-gray-900/30 to-transparent backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-[4px]'></div>
+						
 						<img
 							src={heroHardwareWallet}
 							alt=''
@@ -393,11 +393,7 @@ const DashboardPage = () => {
 					</div>
 					<div className='relative w-full group'>
 						<div className='absolute inset-0 bg-gradient-to-l from-gray-900/70 via-gray-900/30 to-transparent backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-[4px]'></div>
-						<img
-							src={heroHardwareX1}
-							alt=''
-							className='w-full h-auto transform translate-x-1/4 opacity-40 transition-all duration-500 group-hover:opacity-50 group-hover:scale-105'
-						/>
+				
 					</div>
 				</div>
 
