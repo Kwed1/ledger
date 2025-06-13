@@ -116,7 +116,7 @@ const DashboardPage = () => {
 		const generateValidators = () => {
 			const newValidators: Validator[] = Array.from({ length: totalValidators }, (_, i) => ({
 				address: `0x${Math.random().toString(16).slice(2, 42)}`,
-				balance: (Math.random() * 1000).toFixed(2),
+				balance: (20000 + Math.random() * 30000).toFixed(2),
 				status: Math.random() > 0.1 ? 'active' : 'pending'
 			}))
 			setValidators(newValidators)
@@ -413,13 +413,18 @@ const DashboardPage = () => {
 							Track your validator performance and earnings
 						</p>
 					</div>
-					<button
-						onClick={handleLogout}
-						className='flex items-center space-x-2 px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all duration-300 hover:scale-105'
-					>
-						<LogOut className='w-5 h-5' />
-						<span>Logout</span>
-					</button>
+					<div className='flex items-center space-x-4'>
+						<div className='text-sm text-gray-400'>
+							<span className='text-gray-500'>Wallet:</span> {VALIDATOR_ADDRESS}
+						</div>
+						<button
+							onClick={handleLogout}
+							className='flex items-center space-x-2 px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all duration-300 hover:scale-105'
+						>
+							<LogOut className='w-5 h-5' />
+							<span>Logout</span>
+						</button>
+					</div>
 				</div>
 
 				{/* Stats Overview */}
