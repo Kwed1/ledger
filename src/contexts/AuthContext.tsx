@@ -9,6 +9,7 @@ interface UserData {
 	twoFactorSecret?: string
 	nodeId?: string
 	password?: string
+	address?: string
 	stakerPassword?: string
 	last2FAPrompt?: string
 	ledgerAddress?: string
