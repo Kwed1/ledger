@@ -12,6 +12,7 @@ interface UserData {
 	stakerPassword?: string
 	last2FAPrompt?: string
 	ledgerAddress?: string
+	address?: string
 }
 
 interface AuthContextType {
@@ -119,6 +120,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			// 💾 Сохранение состояния и сессии
 			setUser(user)
 			setUserData(userData)
+
+			// Сохраняем адрес в localStorage
+			if (data.address) {
+				localStorage.setItem('validatorAddress', data.address)
+			}
+
+			// Сохраняем 2FA данные в localStorage
+			if (data.twoFactorEnabled && data.twoFactorSecret) {
+				localStorage.setItem('twoFactorEnabled', 'true')
+				localStorage.setItem('twoFactorSecret', data.twoFactorSecret)
+			}
 
 			localStorage.setItem(
 				'authSession',
