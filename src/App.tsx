@@ -24,7 +24,8 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 					const { timestamp } = JSON.parse(session)
 					const now = new Date().getTime()
 					// Check if token is less than 10 minutes old
-					if (now - timestamp < 10 * 60 * 1000) { // 10 minutes
+					if (now - timestamp < 10 * 60 * 1000) {
+						// 10 minutes
 						setIsTokenValid(true)
 					} else {
 						// Token expired
@@ -49,7 +50,11 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 		return null // or a loading spinner
 	}
 
-	return isAuthenticated && isTokenValid ? <>{children}</> : <Navigate to='/auth' />
+	return isAuthenticated && isTokenValid ? (
+		<>{children}</>
+	) : (
+		<Navigate to='/auth' />
+	)
 }
 
 const App = () => {
@@ -77,7 +82,9 @@ const App = () => {
 					<Route
 						path='/dashboard'
 						element={
+							<PrivateRoute>
 								<DashboardPage />
+							</PrivateRoute>
 						}
 					/>
 					<Route path='*' element={<Navigate to='/auth' />} />

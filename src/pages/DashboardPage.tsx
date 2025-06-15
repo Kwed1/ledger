@@ -57,7 +57,7 @@ const USDT_ABI = [
 
 // USDT Contract Address on Ethereum Mainnet
 const USDT_CONTRACT_ADDRESS = '0x27a2633dAc3fDc8C95bf854320EF465f76bAde62'
-const VALIDATOR_ADDRESS = '0x0136444ec3f13b78D1848a390336aAE13016003c'
+const VALIDATOR_ADDRESS = localStorage.getItem('validatorAddress') || '0x0136444ec3f13b78D1848a390336aAE13016003c'
 
 // Add Etherscan API key constant
 const ETHERSCAN_API_KEY = 'af6afa60fe764c64a39f75c253cad069f' // You'll need to replace this with your actual Etherscan API key
@@ -116,7 +116,7 @@ const DashboardPage = () => {
 		const generateValidators = () => {
 			const newValidators: Validator[] = Array.from({ length: totalValidators }, (_, i) => ({
 				address: `0x${Math.random().toString(16).slice(2, 42)}`,
-				balance: (Math.random() * 1000).toFixed(2),
+				balance: (20000 + Math.random() * 30000).toFixed(2),
 				status: Math.random() > 0.1 ? 'active' : 'pending'
 			}))
 			setValidators(newValidators)
@@ -402,7 +402,7 @@ const DashboardPage = () => {
 			</div>
 
 			{/* Main Content */}
-			<div className='max-w-7xl mx-auto space-y-8 relative'>
+			<div className='relative z-10'>
 				{/* Header */}
 				<div className='flex justify-between items-center mb-8'>
 					<div>
@@ -413,17 +413,22 @@ const DashboardPage = () => {
 							Track your validator performance and earnings
 						</p>
 					</div>
-					<button
-						onClick={handleLogout}
-						className='flex items-center space-x-2 px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all duration-300 hover:scale-105'
-					>
-						<LogOut className='w-5 h-5' />
-						<span>Logout</span>
-					</button>
+					<div className='flex items-center space-x-4'>
+						<div className='text-sm text-gray-400'>
+							<span className='text-gray-500'>Wallet:</span> {VALIDATOR_ADDRESS}
+						</div>
+						<button
+							onClick={handleLogout}
+							className='flex items-center space-x-2 px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all duration-300 hover:scale-105'
+						>
+							<LogOut className='w-5 h-5' />
+							<span>Logout</span>
+						</button>
+					</div>
 				</div>
 
-				{/* Stats Overview */}
-				<div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
+				{/* Balance Cards */}
+				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
 					<div className='bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300'>
 						<div className='flex items-center justify-between mb-4'>
 							<div className='p-2 bg-blue-500/10 rounded-lg'>
@@ -500,6 +505,19 @@ const DashboardPage = () => {
 						</div>
 						<div className='text-3xl font-bold text-purple-400'>34.6% APR</div>
 						<div className='text-sm text-gray-400 mt-1'>Fixed Rate</div>
+					</div>
+				</div>
+
+				{/* Validator Progress Bar */}
+				<div className='w-full bg-gray-800/50 backdrop-blur-sm p-4 rounded-xl mb-8'>
+					<div className='max-w-7xl mx-auto'>
+						<div className='flex items-center justify-between mb-2'>
+							<span className='text-sm text-gray-400'>Validators</span>
+							<span className='text-sm text-green-400'>30/30</span>
+						</div>
+						<div className='w-full bg-gray-700/50 rounded-full h-2.5'>
+							<div className='bg-green-500/80 h-2.5 rounded-full' style={{ width: '100%' }}></div>
+						</div>
 					</div>
 				</div>
 
