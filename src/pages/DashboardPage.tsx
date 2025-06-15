@@ -67,7 +67,7 @@ const COVALENT_API_KEY = 'cqt_rQJ6X4J8X4J8X4J8X4J8X4J8X4J8X4J8'
 
 // Update Infura endpoint with correct format
 const INFURA_ENDPOINT =
-	'https://mainnet.infura.io/v3/af6afa60fe764c64a39f75c253cad069'
+	'https://mainnet.infura.io/v3/OCrkBmhUYvaYlP4kMV/01c7ed47136c4a37b30e0d69c4bfafbd'
 
 interface Validator {
 	address: string
