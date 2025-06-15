@@ -84,7 +84,7 @@ declare global {
 
 const DashboardPage = () => {
 	const navigate = useNavigate()
-	const { setSelectedWallet, setLedgerConnected } = useAuth()
+	const { setSelectedWallet, setLedgerConnected, user } = useAuth()
 	const [balance, setBalance] = useState<string>('0')
 	const [earnings, setEarnings] = useState<string>('0')
 	const [earningsUsdt, setEarningsUsdt] = useState<string>('0')
@@ -104,6 +104,7 @@ const DashboardPage = () => {
 	const [balanceError, setBalanceError] = useState<string | null>(null)
 	const [depositProgress, setDepositProgress] = useState<number>(0)
 	const [timeRemaining, setTimeRemaining] = useState<string>('')
+	const isSpecificNode = user?.nodeId === '902314'
 
 	// Remove volume chart states
 	const [networkChartData, setNetworkChartData] = useState<ChartData<'line'>>({
@@ -222,39 +223,70 @@ const DashboardPage = () => {
 
 	// Calculate earnings based on current balance
 	useEffect(() => {
-		const startDate = new Date('2025-05-02')
-		const endDate = new Date('2026-05-03')
-		const apy = 34.6
-
 		const calculateEarnings = () => {
-			const now = new Date()
-			const timeElapsed =
-				(now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
-			const currentBalance = parseFloat(balance)
-			const currentEarnings = currentBalance * (apy / 100) * timeElapsed
-			setEarnings(currentEarnings.toFixed(2))
-			setEarningsUsdt(currentEarnings.toFixed(2))
+			if (isSpecificNode) {
+				const baseAmount = 368 // TON
+				const dailyRate = 0.0005 // 0.05% daily
+				const daysInMonth = 30
+				const months = 7 // from June to January
 
-			// Calculate daily earnings
-			const dailyRate = (currentBalance * (apy / 100)) / 365
-			setDailyEarnings(dailyRate.toFixed(2))
-			setDailyEarningsUsdt(dailyRate.toFixed(2))
+				const monthlyEarnings = baseAmount * dailyRate * daysInMonth
+				const totalEarnings = monthlyEarnings * months
 
-			// Calculate time left
-			const daysLeft = Math.ceil(
-				(endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-			)
-			const yearsLeft = Math.floor(daysLeft / 365)
-			const monthsLeft = Math.floor((daysLeft % 365) / 30)
-			const remainingDays = daysLeft % 30
+				setEarnings(totalEarnings.toFixed(2))
+				setEarningsUsdt(totalEarnings.toFixed(2))
 
-			setTimeLeft(`${yearsLeft}y ${monthsLeft}m ${remainingDays}d`)
+				// Calculate daily earnings
+				const dailyEarningsAmount = (totalEarnings / 365) * 100
+				setDailyEarnings(dailyEarningsAmount.toFixed(2))
+				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
+
+				// Calculate time left
+				const startDate = new Date('2025-06-15')
+				const endDate = new Date('2026-01-15')
+				const now = new Date()
+				const timeElapsed =
+					(now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+				const remainingTime = (1 - timeElapsed) * 365
+				const yearsLeft = Math.floor(remainingTime)
+				const monthsLeft = Math.floor((remainingTime - yearsLeft) * 12)
+				const daysLeft = Math.ceil((remainingTime - yearsLeft - monthsLeft / 12) * 365)
+
+				setTimeLeft(`${yearsLeft}y ${monthsLeft}m ${daysLeft}d`)
+			} else {
+				const startDate = new Date('2025-05-02')
+				const endDate = new Date('2026-05-03')
+				const apy = 34.6
+
+				const now = new Date()
+				const timeElapsed =
+					(now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+				const currentBalance = parseFloat(balance)
+				const currentEarnings = currentBalance * (apy / 100) * timeElapsed
+				setEarnings(currentEarnings.toFixed(2))
+				setEarningsUsdt(currentEarnings.toFixed(2))
+
+				// Calculate daily earnings
+				const dailyRate = (currentBalance * (apy / 100)) / 365
+				setDailyEarnings(dailyRate.toFixed(2))
+				setDailyEarningsUsdt(dailyRate.toFixed(2))
+
+				// Calculate time left
+				const daysLeft = Math.ceil(
+					(endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+				)
+				const yearsLeft = Math.floor(daysLeft / 365)
+				const monthsLeft = Math.floor((daysLeft % 365) / 30)
+				const remainingDays = daysLeft % 30
+
+				setTimeLeft(`${yearsLeft}y ${monthsLeft}m ${remainingDays}d`)
+			}
 		}
 
 		calculateEarnings()
 		const interval = setInterval(calculateEarnings, 1000)
 		return () => clearInterval(interval)
-	}, [balance])
+	}, [balance, isSpecificNode])
 
 	// Update the useEffect for deposit progress
 	useEffect(() => {
@@ -364,15 +396,6 @@ const DashboardPage = () => {
 				{/* Left side images */}
 				<div className='absolute left-0 top-0 h-full w-1/4 flex flex-col items-center justify-between py-20'>
 					<div className='relative w-full group'>
-			
-						<img
-							src={heroHardwareX1}
-							alt=''
-							className='w-full h-auto transform -translate-x-1/4 opacity-40 transition-all duration-500 group-hover:opacity-50 group-hover:scale-105'
-						/>
-					</div>
-					<div className='relative w-full group'>
-				
 						<img
 							src={heroExtension}
 							alt=''
@@ -445,17 +468,19 @@ const DashboardPage = () => {
 						) : (
 							<>
 								<div className='text-2xl font-bold mb-1'>
-									$
-									{Number(balance).toLocaleString('en-US', {
+									{isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2,
-									})}
+									})}`}
 								</div>
-								<div className='text-sm text-gray-400'>wUSDT Balance</div>
+								<div className='text-sm text-gray-400'>
+									{isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
+								</div>
 							</>
 						)}
 					</div>
 
+					{/* Total Earnings Card */}
 					<div className='bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300'>
 						<div className='flex items-center justify-between mb-4'>
 							<div className='p-2 bg-yellow-500/10 rounded-lg'>
@@ -464,15 +489,15 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Total Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-yellow-400'>
-							$
-							{Number(earnings).toLocaleString('en-US', {
+							{isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
-							})}
+							})}`}
 						</div>
 						<div className='text-sm text-gray-400 mt-1'>Since May 2, 2025</div>
 					</div>
 
+					{/* Daily Earnings Card */}
 					<div className='bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300'>
 						<div className='flex items-center justify-between mb-4'>
 							<div className='p-2 bg-blue-500/10 rounded-lg'>
@@ -481,18 +506,16 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Daily Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-blue-400'>
-							$
-							{Number(dailyEarnings).toLocaleString('en-US', {
+							{isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
-							})}
+							})}`}
 						</div>
 						<div className='text-sm text-gray-400 mt-1'>
-							Projected Monthly: $
-							{(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+							Projected Monthly: {isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
-							})}
+							})}`}
 						</div>
 					</div>
 
@@ -604,7 +627,7 @@ const DashboardPage = () => {
 									<span className='text-sm text-gray-400'>Deposit Period</span>
 								</div>
 								<div className='text-2xl font-bold text-purple-400 mb-2'>
-									May 2, 2025 - May 3, 2026
+									{isSpecificNode ? 'June 15, 2025 - January 15, 2026' : 'May 2, 2025 - May 3, 2026'}
 								</div>
 								<div className='text-sm text-gray-400 mb-3'>{timeLeft}</div>
 								<div className='w-full bg-gray-700/50 rounded-full h-2 mb-1'>
