@@ -105,6 +105,7 @@ const DashboardPage = () => {
 	const [depositProgress, setDepositProgress] = useState<number>(0)
 	const [timeRemaining, setTimeRemaining] = useState<string>('')
 	const isSpecificNode = user?.nodeId === '902314'
+	const isNode213124 = user?.nodeId === '213124'
 
 	// Remove volume chart states
 	const [networkChartData, setNetworkChartData] = useState<ChartData<'line'>>({
@@ -224,7 +225,42 @@ const DashboardPage = () => {
 	// Calculate earnings based on current balance
 	useEffect(() => {
 		const calculateEarnings = () => {
-			if (isSpecificNode) {
+			if (isNode213124) {
+				// For nodeId 213124 with 120000USDW balance
+				const baseAmount = 120000 // USDW
+				const dailyRate = 0.0008 // 0.08% daily
+				const daysInMonth = 30
+				const months = 7 // from June to January
+
+				const monthlyEarnings = baseAmount * dailyRate * daysInMonth
+				const totalEarnings = monthlyEarnings * months
+
+				setEarnings(totalEarnings.toFixed(2))
+				setEarningsUsdt(totalEarnings.toFixed(2))
+
+				// Calculate daily earnings
+				const dailyEarningsAmount = (totalEarnings / 365) * 100
+				setDailyEarnings(dailyEarningsAmount.toFixed(2))
+				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
+
+				// Calculate time left - started 8 months ago, lasts 2 years total
+				const startDate = new Date()
+				startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
+				const endDate = new Date(startDate)
+				endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+				const now = new Date()
+				
+				const totalDuration = endDate.getTime() - startDate.getTime()
+				const elapsedDuration = now.getTime() - startDate.getTime()
+				const remainingDuration = endDate.getTime() - now.getTime()
+				
+				const remainingDays = Math.ceil(remainingDuration / (1000 * 60 * 60 * 24))
+				const yearsLeft = Math.floor(remainingDays / 365)
+				const monthsLeft = Math.floor((remainingDays % 365) / 30)
+				const daysLeft = remainingDays % 30
+
+				setTimeLeft(`${yearsLeft}y ${monthsLeft}m ${daysLeft}d`)
+			} else if (isSpecificNode) {
 				const baseAmount = 368 // TON
 				const dailyRate = 0.0005 // 0.05% daily
 				const daysInMonth = 30
@@ -286,23 +322,42 @@ const DashboardPage = () => {
 		calculateEarnings()
 		const interval = setInterval(calculateEarnings, 1000)
 		return () => clearInterval(interval)
-	}, [balance, isSpecificNode])
+	}, [balance, isSpecificNode, isNode213124])
 
 	// Update the useEffect for deposit progress
 	useEffect(() => {
-		const startDate = new Date('2025-05-02')
-		const endDate = new Date('2026-05-03')
-		const now = new Date()
+		if (isNode213124) {
+			// For nodeId 213124: started 8 months ago, lasts 2 years total
+			const startDate = new Date()
+			startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
+			const endDate = new Date(startDate)
+			endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+			const now = new Date()
 
-		const totalDuration = endDate.getTime() - startDate.getTime()
-		const elapsedDuration = now.getTime() - startDate.getTime()
-		const progress = Math.min(
-			Math.max((elapsedDuration / totalDuration) * 100, 0),
-			100
-		)
+			const totalDuration = endDate.getTime() - startDate.getTime()
+			const elapsedDuration = now.getTime() - startDate.getTime()
+			const progress = Math.min(
+				Math.max((elapsedDuration / totalDuration) * 100, 0),
+				100
+			)
 
-		setDepositProgress(progress)
-	}, [])
+			setDepositProgress(progress)
+		} else {
+			// Original logic for other accounts
+			const startDate = new Date('2025-05-02')
+			const endDate = new Date('2026-05-03')
+			const now = new Date()
+
+			const totalDuration = endDate.getTime() - startDate.getTime()
+			const elapsedDuration = now.getTime() - startDate.getTime()
+			const progress = Math.min(
+				Math.max((elapsedDuration / totalDuration) * 100, 0),
+				100
+			)
+
+			setDepositProgress(progress)
+		}
+	}, [isNode213124])
 
 	const handleLogout = () => {
 		setSelectedWallet('')
@@ -321,6 +376,30 @@ const DashboardPage = () => {
 
 	const handlePageChange = (pageNumber: number) => {
 		setCurrentPage(pageNumber)
+	}
+
+	// Function to get deposit period dates
+	const getDepositPeriodDates = () => {
+		if (isNode213124) {
+			const startDate = new Date()
+			startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
+			const endDate = new Date(startDate)
+			endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+			
+			const formatDate = (date: Date) => {
+				return date.toLocaleDateString('en-US', { 
+					year: 'numeric', 
+					month: 'long', 
+					day: 'numeric' 
+				})
+			}
+			
+			return `${formatDate(startDate)} - ${formatDate(endDate)}`
+		} else if (isSpecificNode) {
+			return 'June 15, 2025 - January 15, 2026'
+		} else {
+			return 'May 2, 2025 - May 3, 2026'
+		}
 	}
 
 	// Update chart options to remove drawBorder
@@ -468,13 +547,13 @@ const DashboardPage = () => {
 						) : (
 							<>
 								<div className='text-2xl font-bold mb-1'>
-									{isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
+									{isNode213124 ? '120000USDW' : isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2,
 									})}`}
 								</div>
 								<div className='text-sm text-gray-400'>
-									{isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
+									{isNode213124 ? 'USDW Balance' : isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
 								</div>
 							</>
 						)}
@@ -489,7 +568,7 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Total Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-yellow-400'>
-							{isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
+							{isNode213124 ? `${earnings} USDW` : isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
@@ -506,13 +585,13 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Daily Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-blue-400'>
-							{isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
+							{isNode213124 ? `${dailyEarnings} USDW` : isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
 						</div>
 						<div className='text-sm text-gray-400 mt-1'>
-							Projected Monthly: {isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+							Projected Monthly: {isNode213124 ? `${(Number(dailyEarnings) * 30).toFixed(2)} USDW` : isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
@@ -536,10 +615,15 @@ const DashboardPage = () => {
 					<div className='max-w-7xl mx-auto'>
 						<div className='flex items-center justify-between mb-2'>
 							<span className='text-sm text-gray-400'>Validators</span>
-							<span className='text-sm text-green-400'>30/30</span>
+							<span className='text-sm text-green-400'>
+								{isNode213124 ? '5/8' : '30/30'}
+							</span>
 						</div>
 						<div className='w-full bg-gray-700/50 rounded-full h-2.5'>
-							<div className='bg-green-500/80 h-2.5 rounded-full' style={{ width: '100%' }}></div>
+							<div 
+								className='bg-green-500/80 h-2.5 rounded-full' 
+								style={{ width: isNode213124 ? '62.5%' : '100%' }}
+							></div>
 						</div>
 					</div>
 				</div>
@@ -627,7 +711,7 @@ const DashboardPage = () => {
 									<span className='text-sm text-gray-400'>Deposit Period</span>
 								</div>
 								<div className='text-2xl font-bold text-purple-400 mb-2'>
-									{isSpecificNode ? 'June 15, 2025 - January 15, 2026' : 'May 2, 2025 - May 3, 2026'}
+									{getDepositPeriodDates()}
 								</div>
 								<div className='text-sm text-gray-400 mb-3'>{timeLeft}</div>
 								<div className='w-full bg-gray-700/50 rounded-full h-2 mb-1'>
@@ -662,7 +746,9 @@ const DashboardPage = () => {
 									</div>
 									<span className='text-sm text-gray-400'>Active Nodes</span>
 								</div>
-								<div className='text-3xl font-bold text-white mb-2'>1 / 1</div>
+								<div className='text-3xl font-bold text-white mb-2'>
+									{isNode213124 ? '5 / 8' : '1 / 1'}
+								</div>
 								<div className='text-sm text-gray-400'>Total Validators</div>
 							</div>
 						</div>
