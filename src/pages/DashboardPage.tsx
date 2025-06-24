@@ -243,11 +243,9 @@ const DashboardPage = () => {
 				setDailyEarnings(dailyEarningsAmount.toFixed(2))
 				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
 
-				// Calculate time left - started 8 months ago, lasts 2 years total
-				const startDate = new Date()
-				startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
-				const endDate = new Date(startDate)
-				endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+				// Calculate time left - fixed period from December 24, 2024 to December 24, 2026
+				const startDate = new Date('2024-12-24')
+				const endDate = new Date('2026-12-24')
 				const now = new Date()
 				
 				const totalDuration = endDate.getTime() - startDate.getTime()
@@ -327,11 +325,9 @@ const DashboardPage = () => {
 	// Update the useEffect for deposit progress
 	useEffect(() => {
 		if (isNode213124) {
-			// For nodeId 213124: started 8 months ago, lasts 2 years total
-			const startDate = new Date()
-			startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
-			const endDate = new Date(startDate)
-			endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+			// For nodeId 213124: fixed period from December 24, 2024 to December 24, 2026
+			const startDate = new Date('2024-12-24')
+			const endDate = new Date('2026-12-24')
 			const now = new Date()
 
 			const totalDuration = endDate.getTime() - startDate.getTime()
@@ -381,10 +377,8 @@ const DashboardPage = () => {
 	// Function to get deposit period dates
 	const getDepositPeriodDates = () => {
 		if (isNode213124) {
-			const startDate = new Date()
-			startDate.setMonth(startDate.getMonth() - 8) // 8 months ago
-			const endDate = new Date(startDate)
-			endDate.setFullYear(endDate.getFullYear() + 2) // 2 years total duration
+			const startDate = new Date('2024-12-24')
+			const endDate = new Date('2026-12-24')
 			
 			const formatDate = (date: Date) => {
 				return date.toLocaleDateString('en-US', { 
@@ -547,13 +541,13 @@ const DashboardPage = () => {
 						) : (
 							<>
 								<div className='text-2xl font-bold mb-1'>
-									{isNode213124 ? '120000USDW' : isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
+									{isNode213124 ? '$120,000' : isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2,
 									})}`}
 								</div>
 								<div className='text-sm text-gray-400'>
-									{isNode213124 ? 'USDW Balance' : isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
+									{isNode213124 ? 'USD Balance' : isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
 								</div>
 							</>
 						)}
@@ -568,12 +562,15 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Total Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-yellow-400'>
-							{isNode213124 ? `${earnings} USDW` : isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
+							{isNode213124 ? `$${Number(earnings).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
 						</div>
-						<div className='text-sm text-gray-400 mt-1'>Since May 2, 2025</div>
+						<div className='text-sm text-gray-400 mt-1'>Since December 24, 2024</div>
 					</div>
 
 					{/* Daily Earnings Card */}
@@ -585,13 +582,19 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Daily Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-blue-400'>
-							{isNode213124 ? `${dailyEarnings} USDW` : isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
+							{isNode213124 ? `$${Number(dailyEarnings).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
 						</div>
 						<div className='text-sm text-gray-400 mt-1'>
-							Projected Monthly: {isNode213124 ? `${(Number(dailyEarnings) * 30).toFixed(2)} USDW` : isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+							Projected Monthly: {isNode213124 ? `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}`}
