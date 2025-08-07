@@ -7,7 +7,7 @@ import svgr from 'vite-plugin-svgr'
 export default defineConfig({
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['spa.safenode.me'],
+    allowedHosts: ['safenode.me'],
     port: 3000,
   },
   plugins: [
