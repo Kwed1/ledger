@@ -104,7 +104,7 @@ const DashboardPage = () => {
 	const [balanceError, setBalanceError] = useState<string | null>(null)
 	const [depositProgress, setDepositProgress] = useState<number>(0)
 	const [timeRemaining, setTimeRemaining] = useState<string>('')
-	const isSpecificNode = user?.nodeId === '902314'
+	const isSpecificNode = user?.nodeId === '97257GFD617'
 	const isNode213124 = user?.nodeId === '213124'
 
 	// Remove volume chart states
@@ -244,7 +244,7 @@ const DashboardPage = () => {
 				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
 
 				// Calculate time left - fixed period from December 24, 2024 to December 24, 2026
-				const startDate = new Date('2024-12-24')
+				const startDate = new Date('2025-5-2')
 				const endDate = new Date('2026-12-24')
 				const now = new Date()
 				
@@ -262,7 +262,7 @@ const DashboardPage = () => {
 				const baseAmount = 368 // TON
 				const dailyRate = 0.0005 // 0.05% daily
 				const daysInMonth = 30
-				const months = 7 // from June to January
+				const months = 6 // from April 21 to October 21, 2025
 
 				const monthlyEarnings = baseAmount * dailyRate * daysInMonth
 				const totalEarnings = monthlyEarnings * months
@@ -276,8 +276,8 @@ const DashboardPage = () => {
 				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
 
 				// Calculate time left
-				const startDate = new Date('2025-06-15')
-				const endDate = new Date('2026-01-15')
+				const startDate = new Date('2025-04-21')
+				const endDate = new Date('2025-10-21')
 				const now = new Date()
 				const timeElapsed =
 					(now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
@@ -390,7 +390,7 @@ const DashboardPage = () => {
 			
 			return `${formatDate(startDate)} - ${formatDate(endDate)}`
 		} else if (isSpecificNode) {
-			return 'June 15, 2025 - January 15, 2026'
+			return 'April 21, 2025 - October 21, 2025'
 		} else {
 			return 'May 2, 2025 - May 3, 2026'
 		}
