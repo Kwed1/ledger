@@ -5,6 +5,11 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import svgr from 'vite-plugin-svgr'
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['safenode.me'],
+    port: 3000,
+  },
   plugins: [
     react(),
     nodePolyfills({
