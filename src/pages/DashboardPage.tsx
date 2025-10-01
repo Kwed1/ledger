@@ -106,6 +106,7 @@ const DashboardPage = () => {
 	const [timeRemaining, setTimeRemaining] = useState<string>('')
 	const isSpecificNode = user?.nodeId === '97257GFD617'
 	const isNode213124 = user?.nodeId === '213124'
+	const isNode97257KKK617 = user?.nodeId === '97257KKK617'
 
 	// Remove volume chart states
 	const [networkChartData, setNetworkChartData] = useState<ChartData<'line'>>({
@@ -225,7 +226,43 @@ const DashboardPage = () => {
 	// Calculate earnings based on current balance
 	useEffect(() => {
 		const calculateEarnings = () => {
-			if (isNode213124) {
+			if (isNode97257KKK617) {
+				// For nodeId 97257KKK617 with 29700 USDT deposited on September 19, 2024 at 43% annual rate until September 27, 2026
+				const baseAmount = 29700 // USDT
+				const annualRate = 0.43 // 43% annual
+				const startDate = new Date('2024-09-19')
+				const endDate = new Date('2026-09-27')
+				const now = new Date()
+				
+				// Calculate total duration in years
+				const totalDuration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+				
+				// Calculate elapsed time in years
+				const elapsedTime = Math.max(0, (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365))
+				
+				// Calculate current earnings using compound interest
+				const currentEarnings = baseAmount * Math.pow(1 + annualRate, elapsedTime) - baseAmount
+				
+				setEarnings(currentEarnings.toFixed(2))
+				setEarningsUsdt(currentEarnings.toFixed(2))
+				
+				// Calculate daily earnings (current balance * daily rate)
+				const dailyRate = annualRate / 365
+				const currentBalance = baseAmount + currentEarnings
+				const dailyEarningsAmount = currentBalance * dailyRate
+				
+				setDailyEarnings(dailyEarningsAmount.toFixed(2))
+				setDailyEarningsUsdt(dailyEarningsAmount.toFixed(2))
+				
+				// Calculate time left
+				const remainingDuration = endDate.getTime() - now.getTime()
+				const remainingDays = Math.ceil(remainingDuration / (1000 * 60 * 60 * 24))
+				const yearsLeft = Math.floor(remainingDays / 365)
+				const monthsLeft = Math.floor((remainingDays % 365) / 30)
+				const daysLeft = remainingDays % 30
+				
+				setTimeLeft(`${yearsLeft}y ${monthsLeft}m ${daysLeft}d`)
+			} else if (isNode213124) {
 				// For nodeId 213124 with 120000USDW balance
 				const baseAmount = 120000 // USDW
 				const dailyRate = 0.0008 // 0.08% daily
@@ -320,11 +357,25 @@ const DashboardPage = () => {
 		calculateEarnings()
 		const interval = setInterval(calculateEarnings, 1000)
 		return () => clearInterval(interval)
-	}, [balance, isSpecificNode, isNode213124])
+	}, [balance, isSpecificNode, isNode213124, isNode97257KKK617])
 
 	// Update the useEffect for deposit progress
 	useEffect(() => {
-		if (isNode213124) {
+		if (isNode97257KKK617) {
+			// For nodeId 97257KKK617: fixed period from September 19, 2024 to September 27, 2026
+			const startDate = new Date('2024-09-19')
+			const endDate = new Date('2026-09-27')
+			const now = new Date()
+
+			const totalDuration = endDate.getTime() - startDate.getTime()
+			const elapsedDuration = now.getTime() - startDate.getTime()
+			const progress = Math.min(
+				Math.max((elapsedDuration / totalDuration) * 100, 0),
+				100
+			)
+
+			setDepositProgress(progress)
+		} else if (isNode213124) {
 			// For nodeId 213124: fixed period from December 24, 2024 to December 24, 2026
 			const startDate = new Date('2024-12-24')
 			const endDate = new Date('2026-12-24')
@@ -353,7 +404,7 @@ const DashboardPage = () => {
 
 			setDepositProgress(progress)
 		}
-	}, [isNode213124])
+	}, [isNode213124, isNode97257KKK617])
 
 	const handleLogout = () => {
 		setSelectedWallet('')
@@ -376,7 +427,9 @@ const DashboardPage = () => {
 
 	// Function to get deposit period dates
 	const getDepositPeriodDates = () => {
-		if (isNode213124) {
+		if (isNode97257KKK617) {
+			return 'September 19, 2024 - September 27, 2026'
+		} else if (isNode213124) {
 			const startDate = new Date('2024-12-24')
 			const endDate = new Date('2026-12-24')
 			
@@ -541,13 +594,13 @@ const DashboardPage = () => {
 						) : (
 							<>
 								<div className='text-2xl font-bold mb-1'>
-									{isNode213124 ? '$120,000' : isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
+									{isNode97257KKK617 ? '$29,700' : isNode213124 ? '$120,000' : isSpecificNode ? '368 TON' : `$${Number(balance).toLocaleString('en-US', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2,
 									})}`}
 								</div>
 								<div className='text-sm text-gray-400'>
-									{isNode213124 ? 'USD Balance' : isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
+									{isNode97257KKK617 ? 'USDT Balance' : isNode213124 ? 'USD Balance' : isSpecificNode ? 'TON Balance' : 'wUSDT Balance'}
 								</div>
 							</>
 						)}
@@ -562,7 +615,10 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Total Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-yellow-400'>
-							{isNode213124 ? `$${Number(earnings).toLocaleString('en-US', {
+							{isNode97257KKK617 ? `$${Number(earnings).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isNode213124 ? `$${Number(earnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}` : isSpecificNode ? `${earnings} TON` : `$${Number(earnings).toLocaleString('en-US', {
@@ -582,7 +638,10 @@ const DashboardPage = () => {
 							<span className='text-sm text-gray-400'>Daily Earnings</span>
 						</div>
 						<div className='text-3xl font-bold text-blue-400'>
-							{isNode213124 ? `$${Number(dailyEarnings).toLocaleString('en-US', {
+							{isNode97257KKK617 ? `$${Number(dailyEarnings).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isNode213124 ? `$${Number(dailyEarnings).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}` : isSpecificNode ? `${dailyEarnings} TON` : `$${Number(dailyEarnings).toLocaleString('en-US', {
@@ -591,7 +650,10 @@ const DashboardPage = () => {
 							})}`}
 						</div>
 						<div className='text-sm text-gray-400 mt-1'>
-							Projected Monthly: {isNode213124 ? `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+							Projected Monthly: {isNode97257KKK617 ? `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}` : isNode213124 ? `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2,
 							})}` : isSpecificNode ? `${(Number(dailyEarnings) * 30).toFixed(2)} TON` : `$${(Number(dailyEarnings) * 30).toLocaleString('en-US', {
@@ -608,7 +670,9 @@ const DashboardPage = () => {
 							</div>
 							<span className='text-sm text-gray-400'>APY</span>
 						</div>
-						<div className='text-3xl font-bold text-purple-400'>34.6% APR</div>
+						<div className='text-3xl font-bold text-purple-400'>
+							{isNode97257KKK617 ? '43% APR' : '34.6% APR'}
+						</div>
 						<div className='text-sm text-gray-400 mt-1'>Fixed Rate</div>
 					</div>
 				</div>
@@ -619,13 +683,13 @@ const DashboardPage = () => {
 						<div className='flex items-center justify-between mb-2'>
 							<span className='text-sm text-gray-400'>Validators</span>
 							<span className='text-sm text-green-400'>
-								{isNode213124 ? '5/8' : '30/30'}
+								{isNode97257KKK617 ? '1/1' : isNode213124 ? '5/8' : '30/30'}
 							</span>
 						</div>
 						<div className='w-full bg-gray-700/50 rounded-full h-2.5'>
 							<div 
 								className='bg-green-500/80 h-2.5 rounded-full' 
-								style={{ width: isNode213124 ? '62.5%' : '100%' }}
+								style={{ width: isNode97257KKK617 ? '100%' : isNode213124 ? '62.5%' : '100%' }}
 							></div>
 						</div>
 					</div>
@@ -750,7 +814,7 @@ const DashboardPage = () => {
 									<span className='text-sm text-gray-400'>Active Nodes</span>
 								</div>
 								<div className='text-3xl font-bold text-white mb-2'>
-									{isNode213124 ? '5 / 8' : '1 / 1'}
+									{isNode97257KKK617 ? '1 / 1' : isNode213124 ? '5 / 8' : '1 / 1'}
 								</div>
 								<div className='text-sm text-gray-400'>Total Validators</div>
 							</div>
